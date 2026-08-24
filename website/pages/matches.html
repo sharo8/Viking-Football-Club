@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Matches | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/celebrate.png" alt="" />
+    <div class="container">
+      <h1 class="heading-xl" data-i18n="pages.matches.title">Matches</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="match-season-bar" id="seasonBar"></div>
+      <div class="filters" id="matchTabs"></div>
+      <div id="matchesList"></div>
+      <div id="standingsBlock" class="match-standings" hidden></div>
+    </div>
+  </section>
+
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    let tab = "upcoming";
+
+    function formatDate(iso) {
+      const d = new Date(iso + "T12:00:00");
+      return d.toLocaleDateString(getLocale() === "rw" ? "rw-RW" : getLocale() === "fr" ? "fr-FR" : "en-GB", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    }
+
+    function scoreBlock(m, tr) {
+      if (m.status !== "played") {
+        return `<div class="vs">${tr.match.vs}</div><div class="match-kick">${m.time}</div>`;
+      }
+      if (m.scoreHome != null && m.scoreAway != null) {
+        return `<div class="score">${m.scoreHome} - ${m.scoreAway}</div><div class="match-kick">${m.time}</div>`;
+      }
+      return `<div class="score score-ft">${tr.match.played}</div><div class="match-kick">${m.time}</div>`;
+    }
+
+    function matchCard(m) {
+      const tr = t();
+      const left = m.home ? CLUB.name : m.opponent;
+      const right = m.home ? m.opponent : CLUB.name;
+      const venueLabel = m.home ? tr.match.home : tr.match.away;
+      return `
+        <article class="match-list-item ${m.home ? "is-home" : "is-away"}">
+          <div class="match-list-top">
+            <span class="match-day-badge">${m.matchday || ""}</span>
+            <span class="match-venue-badge">${venueLabel}</span>
+          </div>
+          <div class="match-list-teams">
+            <div class="match-team ${left === CLUB.name ? "is-viking" : ""}">${left}</div>
+            <div class="match-center">${scoreBlock(m, tr)}</div>
+            <div class="match-team ${right === CLUB.name ? "is-viking" : ""}">${right}</div>
+          </div>
+          <div class="match-list-meta">
+            <strong>${formatDate(m.date)}</strong>
+            <span>${m.competition}</span>
+            <span>${m.stadium}</span>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderSeasonBar() {
+      const viking = LEAGUE_TABLE.find((r) => r.team === "Viking FC");
+      const tr = t().match;
+      if (!viking) return;
+      document.getElementById("seasonBar").innerHTML = `
+        <div class="season-stat">
+          <span class="season-stat-label">${tr.position}</span>
+          <strong class="season-stat-value text-red">#${viking.pos}</strong>
+        </div>
+        <div class="season-stat">
+          <span class="season-stat-label">${tr.points}</span>
+          <strong class="season-stat-value">${viking.pts}</strong>
+        </div>
+        <div class="season-stat">
+          <span class="season-stat-label">${tr.record}</span>
+          <strong class="season-stat-value">${viking.won}V · ${viking.drawn}N · ${viking.lost}D</strong>
+        </div>
+        <div class="season-stat">
+          <span class="season-stat-label">${tr.goals}</span>
+          <strong class="season-stat-value">${viking.gf} / ${viking.ga}</strong>
+        </div>
+        <div class="season-stat season-stat-wide">
+          <span class="season-stat-label">${tr.competition}</span>
+          <strong class="season-stat-value">${LEAGUE_META.name}</strong>
+        </div>
+      `;
+    }
+
+    function renderTabs() {
+      const tr = t().match;
+      document.getElementById("matchTabs").innerHTML = `
+        <button class="filter-btn ${tab === "upcoming" ? "active" : ""}" data-tab="upcoming">${tr.upcoming}</button>
+        <button class="filter-btn ${tab === "results" ? "active" : ""}" data-tab="results">${tr.results}</button>
+        <button class="filter-btn ${tab === "table" ? "active" : ""}" data-tab="table">${tr.leagueTable}</button>
+      `;
+      document.querySelectorAll("#matchTabs [data-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tab = btn.dataset.tab;
+          renderTabs();
+          renderContent();
+        });
+      });
+    }
+
+    function renderStandings() {
+      const tr = t();
+      const note = getLocale() === "en" ? LEAGUE_META.labelEn : LEAGUE_META.label;
+      document.getElementById("standingsBlock").innerHTML = `
+        <div class="section-head" style="margin-bottom:1.25rem">
+          <div>
+            <p class="section-label">${LEAGUE_META.name}</p>
+            <h2 class="heading-lg">${tr.match.leagueTable}</h2>
+            <p class="text-muted" style="margin-top:.35rem">${note}</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>${tr.match.team}</th><th>J</th><th>V</th><th>N</th>
+                <th>D</th><th>BP</th><th>BC</th><th>Diff</th><th>Pts</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${LEAGUE_TABLE.map((r) => `
+                <tr class="${r.team === "Viking FC" ? "highlight" : ""}">
+                  <td>${r.pos}</td>
+                  <td>${r.team}</td>
+                  <td>${r.played}</td>
+                  <td>${r.won}</td>
+                  <td>${r.drawn}</td>
+                  <td>${r.lost}</td>
+                  <td>${r.gf}</td>
+                  <td>${r.ga}</td>
+                  <td>${r.gd > 0 ? "+" + r.gd : r.gd}</td>
+                  <td class="text-red"><strong>${r.pts}</strong></td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderContent() {
+      const listEl = document.getElementById("matchesList");
+      const tableEl = document.getElementById("standingsBlock");
+
+      if (tab === "table") {
+        listEl.innerHTML = "";
+        tableEl.hidden = false;
+        renderStandings();
+        return;
+      }
+
+      tableEl.hidden = true;
+      tableEl.innerHTML = "";
+      let list = MATCHES.filter((m) => m.status === (tab === "upcoming" ? "upcoming" : "played"));
+      list = list.slice().sort((a, b) =>
+        tab === "upcoming"
+          ? a.date.localeCompare(b.date)
+          : b.date.localeCompare(a.date),
+      );
+
+      if (!list.length) {
+        listEl.innerHTML = `<p class="text-muted" style="padding:1rem 0">${t().match.noMatches}</p>`;
+        return;
+      }
+      listEl.innerHTML = list.map(matchCard).join("");
+    }
+
+    function initPage() {
+      renderSeasonBar();
+      renderTabs();
+      renderContent();
+    }
+  </script>
+</body>
+</html>

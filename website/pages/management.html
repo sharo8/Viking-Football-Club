@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Management | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/studio.png" alt="" />
+    <div class="container">
+      <h1 class="heading-xl" data-i18n="pages.management.title">Club Management</h1>
+      <p class="page-hero-sub" data-i18n="pages.management.intro"></p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container" id="staffRoot"></div>
+  </section>
+
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    function staffCard(m, featured) {
+      const role = t().roles[m.role] || m.role;
+      const photoClass = featured ? "staff-photo-lg" : "staff-photo-sm";
+      const cardClass = featured ? "staff-card-featured" : "staff-card-compact";
+      return `
+        <article class="staff-card ${cardClass}">
+          <div class="card-img ${photoClass}"><img src="${asset(m.image)}" alt="${m.name}" /></div>
+          <div class="card-body">
+            <p class="card-meta">${role}</p>
+            <h3 class="card-title">${m.name}</h3>
+            <p class="card-text">${m.bio}</p>
+          </div>
+        </article>
+      `;
+    }
+
+    function initPage() {
+      const tr = t();
+      const root = document.getElementById("staffRoot");
+      root.innerHTML = STAFF_SECTIONS.map((section, index) => {
+        const sec = tr.pages.management.sections[section.id] || {
+          title: section.title,
+          subtitle: section.subtitle,
+        };
+        const featured = section.id === "administration";
+        const gridClass =
+          section.id === "administration"
+            ? "staff-grid staff-grid-leadership"
+            : section.id === "technical"
+              ? "staff-grid staff-grid-3"
+              : "staff-grid staff-grid-compact";
+        const countLabel =
+          section.members.length === 1 ? tr.common.member : tr.common.members;
+
+        return `
+          <div class="staff-section" id="${section.id}">
+            <div class="staff-section-head">
+              <div>
+                <p class="section-label">${String(index + 1).padStart(2, "0")}</p>
+                <h2 class="heading-lg">${sec.title}</h2>
+                <p class="staff-section-sub">${sec.subtitle}</p>
+              </div>
+              <span class="staff-count">${section.members.length} ${countLabel}</span>
+            </div>
+            <div class="${gridClass}">
+              ${section.members.map((m) => staffCard(m, featured)).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+  </script>
+</body>
+</html>

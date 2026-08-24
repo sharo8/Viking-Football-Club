@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Contact | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/squad.png" alt="" />
+    <div class="container"><h1 class="heading-xl" data-i18n="pages.contact.title">Contact Us</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container contact-grid">
+      <div>
+        <h2 class="heading-lg mb-3" data-i18n="pages.contact.title">Contact Us</h2>
+        <ul class="contact-info">
+          <li>
+            <span class="icon-wrap" id="iconAddress"></span>
+            <div>
+              <span class="card-meta" data-i18n="pages.contact.address">Address</span>
+              <div id="addr"></div>
+            </div>
+          </li>
+          <li>
+            <span class="icon-wrap" id="iconPhone"></span>
+            <div>
+              <span class="card-meta" data-i18n="pages.contact.phone">Phone</span>
+              <a id="phone" href="#"></a>
+            </div>
+          </li>
+          <li>
+            <span class="icon-wrap" id="iconMail"></span>
+            <div>
+              <span class="card-meta" data-i18n="pages.contact.clubEmail">Club Email (Gmail)</span>
+              <a id="email" href="#"></a>
+            </div>
+          </li>
+          <li>
+            <span class="icon-wrap" id="iconPresident"></span>
+            <div>
+              <span class="card-meta" data-i18n="pages.contact.president">Club President</span>
+              <div id="presidentName"></div>
+            </div>
+          </li>
+          <li>
+            <span class="icon-wrap" id="iconPresPhone"></span>
+            <div>
+              <span class="card-meta" data-i18n="pages.contact.presidentPhone">President Phone</span>
+              <a id="presidentPhone" href="#"></a>
+            </div>
+          </li>
+          <li>
+            <span class="icon-wrap" id="iconPresMail"></span>
+            <div>
+              <span class="card-meta" data-i18n="pages.contact.presidentEmail">President Email</span>
+              <a id="presidentEmail" href="#"></a>
+            </div>
+          </li>
+        </ul>
+        <p class="card-meta mt-3" data-i18n="pages.contact.social">Social Media</p>
+        <div class="socials" id="socials"></div>
+        <div class="map-embed">
+          <iframe title="Map" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3987.5!2d30.0619!3d-1.9441!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwNTYnMzguOCJTIDMwwrAwMyc0Mi44IkU!5e0!3m2!1sen!2srw!4v1700000000000" loading="lazy"></iframe>
+        </div>
+      </div>
+      <form class="form-box contact-form" onsubmit="event.preventDefault();alert('Message sent!');this.reset();">
+        <h3 class="heading-lg mb-3" style="font-size:2rem" data-i18n="pages.contact.formTitle">Send a Message</h3>
+        <label class="card-meta" data-i18n="pages.contact.name">Full Name</label>
+        <input required />
+        <label class="card-meta" data-i18n="pages.contact.email">Email</label>
+        <input type="email" required />
+        <label class="card-meta" data-i18n="pages.contact.message">Message</label>
+        <textarea rows="5" required></textarea>
+        <button class="btn btn-primary" type="submit" data-i18n="pages.contact.send">Send Message</button>
+      </form>
+    </div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    function initPage() {
+      document.getElementById("iconAddress").innerHTML = ICONS.mapPin;
+      document.getElementById("iconPhone").innerHTML = ICONS.phone;
+      document.getElementById("iconMail").innerHTML = ICONS.mail;
+      // Use a person icon for president if available — reuse mail/phone icons already set
+  document.getElementById("iconPresident").innerHTML = ICONS.mapPin;
+      document.getElementById("iconPresPhone").innerHTML = ICONS.phone;
+      document.getElementById("iconPresMail").innerHTML = ICONS.mail;
+
+      document.getElementById("addr").textContent = CLUB.address;
+      document.getElementById("presidentName").textContent = CLUB.president.name;
+
+      const phone = document.getElementById("phone");
+      phone.textContent = CLUB.phone;
+      phone.href = "tel:" + CLUB.phone.replace(/\s/g, "");
+
+      const email = document.getElementById("email");
+      email.textContent = CLUB.email;
+      email.href = "mailto:" + CLUB.email;
+
+      const pPhone = document.getElementById("presidentPhone");
+      pPhone.textContent = CLUB.president.phone;
+      pPhone.href = "tel:" + CLUB.president.phone.replace(/\s/g, "");
+
+      const pEmail = document.getElementById("presidentEmail");
+      pEmail.textContent = CLUB.president.email;
+      pEmail.href = "mailto:" + CLUB.president.email;
+
+      document.getElementById("socials").innerHTML = socialLinksHtml();
+    }
+  </script>
+</body>
+</html>

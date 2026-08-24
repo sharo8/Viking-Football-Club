@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Shop | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/blue-kit.png" alt="" />
+    <div class="container"><h1 class="heading-xl" data-i18n="pages.shop.title">Official Shop</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container">
+      <div class="filters" id="shopFilters"></div>
+      <div class="grid-4" id="shopGrid"></div>
+    </div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    let cat = "all";
+    function renderFilters() {
+      const s = t().pages.shop;
+      const items = [
+        ["all", t().common.all],
+        ["jerseys", s.jerseys],
+        ["caps", s.caps],
+        ["scarves", s.scarves],
+        ["boots", s.boots],
+        ["accessories", s.accessories],
+      ];
+      document.getElementById("shopFilters").innerHTML = items.map(([key, label]) => `
+        <button class="filter-btn ${cat === key ? "active" : ""}" data-cat="${key}">${label}</button>
+      `).join("");
+      document.querySelectorAll("#shopFilters [data-cat]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          cat = btn.dataset.cat;
+          renderFilters();
+          renderShop();
+        });
+      });
+    }
+    function renderShop() {
+      const list = cat === "all" ? SHOP : SHOP.filter((p) => p.category === cat);
+      const add = t().common.addToCart;
+      document.getElementById("shopGrid").innerHTML = list.map((p) => `
+        <article class="product-card">
+          <div class="card-img" style="aspect-ratio:1"><img src="${asset(p.image)}" alt="${p.name}" /></div>
+          <div class="card-body">
+            <h3 class="card-title" style="font-size:1.2rem">${p.name}</h3>
+            <p class="text-red" style="font-family:var(--font-data);font-weight:700">${p.price.toLocaleString()} RWF</p>
+            <button class="btn btn-primary mt-2" style="width:100%" onclick="alert('${add}: ${p.name}')">${add}</button>
+          </div>
+        </article>
+      `).join("");
+    }
+    function initPage() {
+      renderFilters();
+      renderShop();
+    }
+  </script>
+</body>
+</html>

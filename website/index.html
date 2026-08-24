@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Viking FC | One Club. One Family. One Dream.</title>
+  <meta name="description" content="Official website of Viking FC — matches, players, news, academy and shop." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="logo/logo.png" />
+</head>
+<body>
+  <!-- Hero -->
+  <section class="hero">
+    <video class="hero-video" autoplay muted loop playsinline poster="images/celebrate.png">
+      <source src="videos/hero.mp4" type="video/mp4" />
+    </video>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 data-i18n="hero.brand">VIKING FC</h1>
+      <p class="hero-slogan" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="pages/news.html" data-i18n="hero.latestNews">Latest News</a>
+        <a class="btn btn-outline" href="pages/matches.html" data-i18n="hero.nextMatch">Next Match</a>
+      </div>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+  </section>
+
+  <!-- Match Day -->
+  <section class="match-day section">
+    <img class="match-day-bg" src="images/blue-kit.png" alt="" />
+    <div class="match-day-overlay"></div>
+    <div class="container match-day-grid">
+      <div>
+        <p class="section-label" data-i18n="match.matchDay">Match Day</p>
+        <h2 class="heading-lg" id="featuredMatchTitle">Mapane FC VS VIKING FC</h2>
+        <div class="match-meta" id="featuredMatchMeta"></div>
+      </div>
+      <div>
+        <p style="text-align:center;font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:1rem" data-i18n="match.kickOff">Kick Off</p>
+        <div class="countdown" id="countdown"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Latest News -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <p class="section-label" data-i18n="news.title">Latest News</p>
+          <h2 class="heading-lg" data-i18n="news.title">Latest News</h2>
+        </div>
+        <a class="read-more" href="pages/news.html" data-i18n="news.viewAll">View All</a>
+      </div>
+      <div class="grid-3" id="homeNews"></div>
+    </div>
+  </section>
+
+  <!-- Fixtures & Results -->
+  <section class="section bg-alt">
+    <div class="container grid-2">
+      <div>
+        <p class="section-label" data-i18n="match.nextFixtures">Next Fixtures</p>
+        <h2 class="heading-lg mb-3" data-i18n="match.nextFixtures">Next Fixtures</h2>
+        <div id="homeFixtures"></div>
+      </div>
+      <div>
+        <p class="section-label" data-i18n="match.latestResults">Latest Results</p>
+        <h2 class="heading-lg mb-3" data-i18n="match.latestResults">Latest Results</h2>
+        <div id="homeResults"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- League Table -->
+  <section class="section">
+    <div class="container">
+      <p class="section-label" data-i18n="match.leagueTable">League Table</p>
+      <h2 class="heading-lg mb-3" data-i18n="match.leagueTable">League Table</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>
+            </tr>
+          </thead>
+          <tbody id="leagueBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sponsors -->
+  <section class="sponsors section">
+    <div class="container">
+      <p class="section-label" data-i18n="sponsors.title">Our Partners</p>
+      <h2 class="heading-lg" data-i18n="sponsors.title">Our Partners</h2>
+      <div class="sponsor-list" id="sponsorList"></div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="newsletter section">
+    <img src="images/squad.png" alt="" />
+    <div class="container">
+      <p class="section-label" data-i18n="newsletter.title">Stay With The Vikings</p>
+      <h2 class="heading-lg" data-i18n="newsletter.title">Stay With The Vikings</h2>
+      <p class="mt-2" style="color:rgba(255,255,255,.75)" data-i18n="newsletter.subtitle">Receive match alerts, news and exclusive offers.</p>
+      <form class="newsletter-form" onsubmit="event.preventDefault();alert('Subscribed!');">
+        <input type="email" required data-i18n-placeholder="newsletter.placeholder" placeholder="Your email address" />
+        <button class="btn btn-primary" type="submit" data-i18n="newsletter.subscribe">Subscribe</button>
+      </form>
+    </div>
+  </section>
+
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    function initPage() {
+      const featured = MATCHES.find((m) => m.status === "upcoming");
+      const tr = t();
+      const left = featured.home ? CLUB.name : featured.opponent;
+      const right = featured.home ? featured.opponent : CLUB.name;
+
+      document.getElementById("featuredMatchTitle").innerHTML =
+        `${left} <span class="text-red">${tr.match.vs}</span> ${right}`;
+
+      document.getElementById("featuredMatchMeta").innerHTML = `
+        <p><span>${tr.match.date}</span>${featured.date}</p>
+        <p><span>${tr.match.kickOff}</span>${featured.time}</p>
+        <p><span>${tr.match.stadium}</span>${featured.stadium}</p>
+        <p><span>${tr.match.competition}</span>${featured.competition}${featured.matchday ? " · " + featured.matchday : ""}</p>
+      `;
+
+      startCountdown(NEXT_MATCH_DATE, "countdown");
+
+      document.getElementById("homeNews").innerHTML = NEWS.slice(0, 3).map((n) => `
+        <article class="news-card">
+          <div class="card-img"><img src="${n.image}" alt="${n.title}" /></div>
+          <div class="card-body">
+            <p class="card-meta">${n.date}</p>
+            <h3 class="card-title">${n.title}</h3>
+            <p class="card-text">${n.summary}</p>
+            <a class="read-more" href="pages/news-detail.html?slug=${n.slug}">${tr.news.readMore} →</a>
+          </div>
+        </article>
+      `).join("");
+
+      document.getElementById("homeFixtures").innerHTML = MATCHES.filter((m) => m.status === "upcoming").slice(0, 4).map((m) => {
+        const a = m.home ? CLUB.name : m.opponent;
+        const b = m.home ? m.opponent : CLUB.name;
+        return `
+        <div class="fixture-row">
+          <div>
+            <div class="font-display" style="font-size:1.2rem">${a} <span class="vs">${tr.match.vs}</span> ${b}</div>
+            <div class="text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em">${m.matchday || ""} · ${m.competition} · ${m.stadium}</div>
+          </div>
+          <strong style="font-family:var(--font-data)">${m.date}<br/><span style="font-weight:600;opacity:.75">${m.time}</span></strong>
+        </div>`;
+      }).join("");
+
+      document.getElementById("homeResults").innerHTML = MATCHES.filter((m) => m.status === "played").slice(0, 5).map((m) => {
+        const score = (m.scoreHome != null && m.scoreAway != null)
+          ? `${m.scoreHome} - ${m.scoreAway}`
+          : tr.match.played;
+        return `
+        <div class="result-row">
+          <span class="font-display">${m.home ? CLUB.name : m.opponent}</span>
+          <span class="score">${score}</span>
+          <span class="font-display">${m.home ? m.opponent : CLUB.name}</span>
+        </div>`;
+      }).join("");
+
+      document.getElementById("leagueBody").innerHTML = LEAGUE_TABLE.map((r) => `
+        <tr class="${r.team === "Viking FC" ? "highlight" : ""}">
+          <td>${r.pos}</td><td>${r.team}</td><td>${r.played}</td><td>${r.won}</td><td>${r.drawn}</td>
+          <td>${r.lost}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gd > 0 ? "+" + r.gd : r.gd}</td><td class="text-red">${r.pts}</td>
+        </tr>
+      `).join("");
+
+      document.getElementById("sponsorList").innerHTML = SPONSORS.map((s) => `<div class="sponsor-item">${s}</div>`).join("");
+    }
+  </script>
+</body>
+</html>

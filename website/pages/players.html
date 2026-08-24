@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Players | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/blue-kit.png" alt="" />
+    <div class="container"><h1 class="heading-xl" data-i18n="pages.players.title">First Team Squad</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container">
+      <div class="filters" id="playerFilters"></div>
+      <div class="grid-4 players-grid" id="playersGrid"></div>
+    </div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    let filter = "all";
+    function renderPlayers() {
+      const list = filter === "all" ? PLAYERS : PLAYERS.filter((p) => p.position === filter);
+      document.getElementById("playersGrid").innerHTML = list.map((p) => `
+        <a class="player-card" href="player.html?slug=${p.slug}">
+          <div class="card-img">
+            <img src="${asset(p.image)}" alt="${p.name}" />
+            <div class="player-number">${p.number}</div>
+            <div class="player-info">
+              <p class="card-meta">${p.position}</p>
+              <h3 class="card-title" style="margin:0">${p.name}</h3>
+            </div>
+          </div>
+        </a>
+      `).join("");
+    }
+    function renderFilters() {
+      const tr = t().pages.players;
+      const filters = [
+        ["all", tr.all],
+        ["Goalkeeper", tr.goalkeepers],
+        ["Defender", tr.defenders],
+        ["Midfielder", tr.midfielders],
+        ["Forward", tr.forwards],
+      ];
+      document.getElementById("playerFilters").innerHTML = filters.map(([key, label]) => `
+        <button class="filter-btn ${filter === key ? "active" : ""}" data-filter="${key}">${label}</button>
+      `).join("");
+      document.querySelectorAll("#playerFilters [data-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          filter = btn.dataset.filter;
+          renderFilters();
+          renderPlayers();
+        });
+      });
+    }
+    function initPage() {
+      renderFilters();
+      renderPlayers();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>News | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/run.png" alt="" />
+    <div class="container"><h1 class="heading-xl" data-i18n="pages.newsPage.title">Latest News</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container">
+      <div class="filters" id="newsFilters"></div>
+      <div class="grid-3" id="newsGrid"></div>
+    </div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    let cat = "all";
+    function renderFilters() {
+      const c = t().news.categories;
+      const items = Object.keys(c).map((key) => [key, c[key]]);
+      document.getElementById("newsFilters").innerHTML = items.map(([key, label]) => `
+        <button class="filter-btn ${cat === key ? "active" : ""}" data-cat="${key}">${label}</button>
+      `).join("");
+      document.querySelectorAll("#newsFilters [data-cat]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          cat = btn.dataset.cat;
+          renderFilters();
+          renderNews();
+        });
+      });
+    }
+    function renderNews() {
+      const list = cat === "all" ? NEWS : NEWS.filter((n) => n.category === cat);
+      const tr = t();
+      document.getElementById("newsGrid").innerHTML = list.map((n) => `
+        <a class="news-card" href="news-detail.html?slug=${n.slug}">
+          <div class="card-img"><img src="${asset(n.image)}" alt="${n.title}" /></div>
+          <div class="card-body">
+            <p class="card-meta">${tr.news.categories[n.category] || n.category} · ${n.date}</p>
+            <h2 class="card-title">${n.title}</h2>
+            <p class="card-text">${n.summary}</p>
+            <span class="read-more">${tr.news.readMore} →</span>
+          </div>
+        </a>
+      `).join("");
+    }
+    function initPage() {
+      renderFilters();
+      renderNews();
+    }
+  </script>
+</body>
+</html>

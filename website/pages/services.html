@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Services | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/white-kit.png" alt="" />
+    <div class="container"><h1 class="heading-xl" data-i18n="pages.services.title">Club Services</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container grid-3" id="servicesGrid"></div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    function initPage() {
+      const list = t().servicesList;
+      const images = {
+        tickets: IMAGES.blueKit,
+        academy: IMAGES.stretch,
+        recruitment: IMAGES.jog,
+        partnership: IMAGES.studio,
+        stadium: IMAGES.squad,
+        coaching: IMAGES.pitch,
+        boutique: IMAGES.whiteKit,
+      };
+      document.getElementById("servicesGrid").innerHTML = Object.keys(list).map((key) => `
+        <article class="service-card">
+          <div class="card-img"><img src="${asset(images[key])}" alt="${list[key].title}" /></div>
+          <div class="card-body">
+            <h2 class="card-title">${list[key].title}</h2>
+            <p class="card-text">${list[key].desc}</p>
+            <a class="read-more" href="contact.html">${t().common.learnMore} →</a>
+          </div>
+        </article>
+      `).join("");
+    }
+  </script>
+</body>
+</html>

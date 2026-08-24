@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Teams | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/squad.png" alt="" />
+    <div class="container"><h1 class="heading-xl" data-i18n="pages.teams.title">Our Teams</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+</section>
+
+<section class="section">
+    <div class="container grid-3" id="teamsGrid"></div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    function initPage() {
+      const tr = t().pages.teams;
+      const teams = [
+        { title: tr.first, desc: tr.firstDesc, image: IMAGES.portrait, href: "players.html" },
+        { title: tr.academy, desc: tr.academyDesc, image: IMAGES.stretch, href: "about.html" },
+        { title: tr.youth, desc: tr.youthDesc, image: IMAGES.jog, href: "services.html" },
+      ];
+      document.getElementById("teamsGrid").innerHTML = teams.map((team) => `
+        <a class="team-card" href="${team.href}">
+          <div class="card-img" style="aspect-ratio:4/5">
+            <img src="${asset(team.image)}" alt="${team.title}" />
+            <div style="position:absolute;inset:auto 0 0;padding:1.2rem;background:linear-gradient(to top,var(--navy-deep),transparent);color:white">
+              <h2 class="card-title">${team.title}</h2>
+              <p class="card-text" style="color:rgba(255,255,255,.75)">${team.desc}</p>
+            </div>
+          </div>
+        </a>
+      `).join("");
+    }
+  </script>
+</body>
+</html>

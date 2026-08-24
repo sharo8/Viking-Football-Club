@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Gallery | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <section class="page-hero">
+    <img src="../images/pitch.png" alt="" />
+    <div class="container">
+      <h1 class="heading-xl" data-i18n="pages.gallery.title">Gallery</h1>
+      <p class="page-hero-sub" data-i18n="hero.slogan">One Club. One Family. One Dream.</p>
+    </div>
+    <div class="page-hero-scroll" aria-hidden="true">Scroll<span></span></div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="filters" id="galleryFilters"></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </section>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    let filter = "all";
+    function renderFilters() {
+      const g = t().pages.gallery;
+      const items = [
+        ["all", t().common.all],
+        ["photos", g.photos],
+        ["videos", g.videos],
+        ["moments", g.moments],
+        ["trophies", g.trophies],
+        ["fans", g.fans],
+        ["training", g.training],
+      ];
+      document.getElementById("galleryFilters").innerHTML = items.map(([key, label]) => `
+        <button class="filter-btn ${filter === key ? "active" : ""}" data-filter="${key}">${label}</button>
+      `).join("");
+      document.querySelectorAll("#galleryFilters [data-filter]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          filter = btn.dataset.filter;
+          renderFilters();
+          renderGallery();
+        });
+      });
+    }
+    function renderGallery() {
+      let list = GALLERY;
+      if (filter === "photos" || filter === "videos") list = GALLERY.filter((g) => g.type === filter);
+      else if (filter !== "all") list = GALLERY.filter((g) => g.category === filter);
+      document.getElementById("galleryGrid").innerHTML = list.map((g) => `
+        <figure class="gallery-item ${g.video ? "is-video" : ""}" tabindex="0" role="button"
+          aria-label="${g.title}"
+          data-type="${g.type}"
+          data-src="${asset(g.image)}"
+          ${g.video ? `data-video="${asset(g.video)}"` : ""}>
+          <img src="${asset(g.image)}" alt="${g.title}" loading="lazy" />
+          ${g.video ? `<span class="gallery-play" aria-hidden="true">▶</span>` : ""}
+          <figcaption class="gallery-caption">
+            <div>
+              <div class="font-display" style="font-size:1.2rem">${g.title}</div>
+              <div style="font-size:.7rem;text-transform:uppercase;opacity:.7">${g.type}</div>
+            </div>
+          </figcaption>
+        </figure>
+      `).join("");
+    }
+    function initPage() {
+      renderFilters();
+      renderGallery();
+      bindGalleryLightbox();
+    }
+  </script>
+</body>
+</html>

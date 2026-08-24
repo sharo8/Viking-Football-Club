@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Admin | Viking FC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="icon" href="../logo/logo.png" />
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="font-display" style="font-size:1.5rem;margin-bottom:1.5rem;padding:0 .5rem">VIKING <span class="text-red">ADMIN</span></div>
+      <a href="#dashboard">Dashboard</a>
+      <a href="#players">Players</a>
+      <a href="#staff">Staff</a>
+      <a href="#matches">Matches</a>
+      <a href="#news">News</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#videos">Videos</a>
+      <a href="#sponsors">Sponsors</a>
+      <a href="#table">League Table</a>
+      <a href="#users">Users</a>
+      <a href="#messages">Messages</a>
+      <a href="#settings">Settings</a>
+      <a href="#reports">Reports</a>
+      <a href="#analytics">Analytics</a>
+      <a href="../index.html" class="text-red" style="margin-top:1rem">← Back to Site</a>
+    </aside>
+    <main class="admin-main">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+        <div>
+          <h1 class="heading-lg" id="dashboard">Dashboard</h1>
+          <p style="color:rgba(255,255,255,.55);font-size:.9rem">Secure admin overview — HTML / CSS / JS demo</p>
+        </div>
+        <a class="btn btn-outline" href="../index.html" style="color:white;border-color:rgba(255,255,255,.3)">Back to Site</a>
+      </div>
+      <div class="stat-grid" id="stats"></div>
+      <div class="admin-panel" id="players">
+        <h2>Players</h2>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Position</th><th>Age</th></tr></thead><tbody id="adminPlayers"></tbody></table></div>
+      </div>
+      <div class="admin-panel" id="matches">
+        <h2>Matches</h2>
+        <div id="adminMatches"></div>
+      </div>
+      <div class="admin-panel" id="news">
+        <h2>News</h2>
+        <div id="adminNews"></div>
+      </div>
+    </main>
+  </div>
+  <script src="../js/data.js"></script>
+  <script src="../js/i18n.js"></script>
+  <script src="../js/main.js"></script>
+  <script>
+    function initPage() {
+      const cards = [
+        ["Players", PLAYERS.length],
+        ["Staff", STAFF.length],
+        ["Matches", MATCHES.length],
+        ["News", NEWS.length],
+        ["League Teams", LEAGUE_TABLE.length],
+        ["Messages", 12],
+      ];
+      document.getElementById("stats").innerHTML = cards.map(([l, v]) => `
+        <div class="stat-card"><span>${l}</span><strong>${v}</strong></div>
+      `).join("");
+      document.getElementById("adminPlayers").innerHTML = PLAYERS.map((p) => `
+        <tr><td class="text-red">${p.number}</td><td>${p.name}</td><td>${p.position}</td><td>${p.age}</td></tr>
+      `).join("");
+      document.getElementById("adminMatches").innerHTML = MATCHES.map((m) => `
+        <div style="display:flex;justify-content:space-between;gap:1rem;padding:.8rem 1.2rem;border-top:1px solid rgba(255,255,255,.1);font-size:.9rem;flex-wrap:wrap">
+          <span>Viking FC vs ${m.opponent}</span>
+          <span style="opacity:.5">${m.date}</span>
+          <span class="text-red" style="text-transform:uppercase">${m.status}</span>
+        </div>
+      `).join("");
+      document.getElementById("adminNews").innerHTML = NEWS.map((n) => `
+        <div style="padding:.8rem 1.2rem;border-top:1px solid rgba(255,255,255,.1);font-size:.9rem">
+          <strong>${n.title}</strong>
+          <div style="opacity:.5">${n.category} · ${n.date}</div>
+        </div>
+      `).join("");
+    }
+  </script>
+</body>
+</html>
