@@ -1,7 +1,9 @@
+import { L, type LocalizedString } from "@/lib/localize";
+
 export const club = {
   name: "VIKING FC",
   slogan: "One Club. One Family. One Dream.",
-  logo: "/logo/logo.png",
+  logo: "/logo/viking-fc.png",
   email: "info@vikingfc.com",
   phone: "+250 788 000 000",
   address: "Viking Stadium, Kigali, Rwanda",
@@ -16,7 +18,7 @@ export const club = {
 };
 
 export const images = {
-  logo: "/logo/logo.png",
+  logo: "/logo/viking-fc.png",
   heroVideo: "/videos/hero.mp4",
   studio: "/images/studio.png",
   whiteKit: "/images/white-kit.png",
@@ -28,6 +30,7 @@ export const images = {
   run: "/images/run.png",
   stretch: "/images/stretch.png",
   celebrate: "/images/celebrate.png",
+  coachJocos: "/images/coach-jocos-courbon.png",
 };
 
 export type PlayerPosition =
@@ -353,6 +356,7 @@ export type Match = {
   id: string;
   opponent: string;
   competition: string;
+  matchday?: string;
   date: string;
   time: string;
   stadium: string;
@@ -362,117 +366,111 @@ export type Match = {
   status: "upcoming" | "played";
 };
 
-export const nextMatchDate = "2026-08-20T15:00:00";
+export const nextMatchDate = "2026-08-23T16:00:00";
 
 export const matches: Match[] = [
   {
-    id: "m1",
-    opponent: "Kigali United",
-    competition: "Premier League",
-    date: "2026-08-20",
-    time: "15:00",
-    stadium: "Viking Stadium",
+    id: "j8",
+    opponent: "Black Star de Kigali",
+    competition: "GSAL-League",
+    matchday: "J8",
+    date: "2026-08-08",
+    time: "14:00",
+    stadium: "Ejo Heza Stadium",
     home: true,
-    status: "upcoming",
+    scoreHome: 5,
+    scoreAway: 0,
+    status: "played",
   },
   {
-    id: "m2",
-    opponent: "Sunrise FC",
-    competition: "Premier League",
-    date: "2026-08-27",
-    time: "16:00",
-    stadium: "Sunrise Arena",
-    home: false,
-    status: "upcoming",
-  },
-  {
-    id: "m3",
-    opponent: "Gasabo City",
-    competition: "Cup",
-    date: "2026-09-03",
-    time: "15:30",
-    stadium: "Viking Stadium",
-    home: true,
-    status: "upcoming",
-  },
-  {
-    id: "m4",
-    opponent: "Muhanga Stars",
-    competition: "Premier League",
-    date: "2026-09-10",
+    id: "aspk",
+    opponent: "ASPK",
+    competition: "GSAL-League",
+    date: "2026-08-02",
     time: "15:00",
-    stadium: "Muhanga Ground",
-    home: false,
-    status: "upcoming",
-  },
-  {
-    id: "r1",
-    opponent: "Rayon Force",
-    competition: "Premier League",
-    date: "2026-07-28",
-    time: "15:00",
-    stadium: "Viking Stadium",
+    stadium: "Ejo Heza Stadium",
     home: true,
     scoreHome: 2,
-    scoreAway: 1,
+    scoreAway: 0,
     status: "played",
   },
   {
-    id: "r2",
-    opponent: "Nyagatare FC",
-    competition: "Premier League",
-    date: "2026-07-21",
-    time: "16:00",
-    stadium: "Nyagatare Stadium",
-    home: false,
-    scoreHome: 0,
-    scoreAway: 2,
-    status: "played",
-  },
-  {
-    id: "r3",
-    opponent: "Bugesera SC",
-    competition: "Cup",
-    date: "2026-07-14",
+    id: "panthers",
+    opponent: "AS Black Panthers",
+    competition: "GSAL-League",
+    date: "2026-07-26",
     time: "15:00",
-    stadium: "Viking Stadium",
+    stadium: "Ejo Heza Stadium",
+    home: true,
+    scoreHome: 1,
+    scoreAway: 0,
+    status: "played",
+  },
+  {
+    id: "mapane",
+    opponent: "Mapane FC",
+    competition: "GSAL-League",
+    date: "2026-07-19",
+    time: "15:00",
+    stadium: "Ejo Heza Stadium",
     home: true,
     scoreHome: 3,
     scoreAway: 0,
     status: "played",
   },
   {
-    id: "r4",
-    opponent: "Musanze United",
-    competition: "Premier League",
-    date: "2026-07-07",
-    time: "15:30",
-    stadium: "Musanze Arena",
-    home: false,
-    scoreHome: 1,
-    scoreAway: 1,
+    id: "selecao",
+    opponent: "La Seleção",
+    competition: "GSAL-League",
+    date: "2026-07-12",
+    time: "15:00",
+    stadium: "Ejo Heza Stadium",
+    home: true,
+    scoreHome: 2,
+    scoreAway: 0,
     status: "played",
   },
   {
-    id: "r5",
-    opponent: "Huye Titans",
-    competition: "Premier League",
-    date: "2026-06-30",
-    time: "15:00",
-    stadium: "Viking Stadium",
+    id: "next1",
+    opponent: "RCK",
+    competition: "GSAL-League",
+    matchday: "J11",
+    date: "2026-08-23",
+    time: "16:00",
+    stadium: "Ejo Heza Stadium",
     home: true,
-    scoreHome: 4,
-    scoreAway: 2,
-    status: "played",
+    status: "upcoming",
+  },
+  {
+    id: "next2",
+    opponent: "AS Training",
+    competition: "GSAL-League",
+    matchday: "J12",
+    date: "2026-08-30",
+    time: "14:00",
+    stadium: "Ejo Heza Stadium",
+    home: false,
+    status: "upcoming",
+  },
+  {
+    id: "next3",
+    opponent: "ASPK",
+    competition: "GSAL-League",
+    matchday: "J13",
+    date: "2026-09-06",
+    time: "16:00",
+    stadium: "Ejo Heza Stadium",
+    home: true,
+    status: "upcoming",
   },
 ];
 
 export type NewsArticle = {
   id: string;
   slug: string;
-  title: string;
-  summary: string;
-  content: string;
+  title: LocalizedString;
+  summary: LocalizedString;
+  content: LocalizedString;
   category:
     | "club"
     | "transfers"
@@ -480,103 +478,381 @@ export type NewsArticle = {
     | "matchReports"
     | "interviews"
     | "training"
-    | "videos";
+    | "videos"
+    | "retirement";
   image: string;
   date: string;
 };
 
 export const news: NewsArticle[] = [
   {
+    id: "n-season-ready",
+    slug: "viking-fc-ready-for-the-new-season",
+    title: L(
+      "Viking FC Ready For The New Season",
+      "Viking FC prêt pour la nouvelle saison",
+      "Viking FC yiteguye igihe gishya",
+    ),
+    summary: L(
+      "Viking FC starts a new season with ambition and determination. After intensive preparation, the team is ready to defend its colours and pursue excellence in the GSAL-League.",
+      "Viking FC entame une nouvelle saison avec ambition et détermination. Après une préparation intensive, l'équipe est prête à défendre ses couleurs et à poursuivre sa quête d'excellence dans la GSAL-League.",
+      "Viking FC itangira igihe gishya n'intego n'ubushake. Nyuma y'imyitozo ikomeye, ikipe yiteguye kurengera ibara ryayo no gukomeza gutsinda muri GSAL-League.",
+    ),
+    content: L(
+      "Viking FC starts a new season with ambition and determination. After intensive preparation, the team is ready to defend its colours and pursue excellence in the GSAL-League. Staff and players approach this campaign with the standards and family spirit that define the club.",
+      "Viking FC entame une nouvelle saison avec ambition et détermination. Après une préparation intensive, l'équipe est prête à défendre ses couleurs et à poursuivre sa quête d'excellence dans la GSAL-League. Le staff et le vestiaire abordent cette campagne avec l'exigence et l'esprit de famille qui définissent le club.",
+      "Viking FC itangira igihe gishya n'intego n'ubushake. Nyuma y'imyitozo ikomeye, ikipe yiteguye kurengera ibara ryayo no gukomeza gutsinda muri GSAL-League. Abatoza n'abakinnyi bahura n'iyi kampanyi bafite umuco n'umuryango bigaragaza ikipe.",
+    ),
+    category: "club",
+    image: images.squad,
+    date: "2026-08-20",
+  },
+  {
+    id: "n-jacker-sharo",
+    slug: "retraite-victor-jacker-et-sharo",
+    title: L(
+      "End of an Era: Victor Jacker and Sharo Retire",
+      "Fin d'une Ère : Départ à la Retraite de Victor Jacker et Sharo",
+      "Iherezo ry'igihe: Victor Jacker na Sharo basubira mu kiruhuko",
+    ),
+    summary: L(
+      "With deep emotion, Viking FC announces the retirement of two club legends. Victor Jacker and Sharo step away after more than two years of loyal service.",
+      "C'est avec une profonde tristesse que Viking FC annonce le départ à la retraite de deux légendes du club. Victor Jacker et Sharo tirent leur révérence après plus de deux ans de loyaux services.",
+      "Viking FC yamenyesheje n'agahinda ko Victor Jacker na Sharo basubiye mu kiruhuko. Batangiye nyuma y'imyaka irenga ibiri bakorera ikipe n'ubudahemuka.",
+    ),
+    content: L(
+      "With deep emotion, Viking FC announces the retirement of two club legends. Victor Jacker, captain and all-time assist leader of the amateur era with more than 15 assists, and Sharo, vice-captain and top scorer with more than 30 goals in Viking colours, step away after more than two years of loyal service. Together they led the team to three consecutive trophies, giving everything for the club. Jacker's number 11 and Sharo's number 7 will remain forever in Viking FC history. They arrived as kings and leave as legends.",
+      "C'est avec une profonde tristesse que Viking FC annonce le départ à la retraite de deux légendes du club. Victor Jacker, capitaine et meilleur passeur de l'histoire du club amateur avec plus de 15 passes décisives, ainsi que Sharo, sous-capitaine et meilleur buteur avec plus de 30 buts sous le maillot Viking, tirent leur révérence après plus de deux ans de loyaux services. Ensemble, ils ont porté l'équipe vers trois trophées consécutifs, jouant chaque match avec passion et en donnant tout pour le club. Le numéro 11 de Victor Jacker et le numéro 7 de Sharo resteront gravés à jamais dans l'histoire de Viking FC. Arrivés comme des rois, ils repartent comme des légendes.",
+      "Viking FC yamenyesheje n'agahinda ko Victor Jacker na Sharo basubiye mu kiruhuko. Victor Jacker, kapiteni n'uwatanga amahita menshi mu mateka y'ikipe y'abanyamateka n'amahita arenga 15, na Sharo, umukuru wungirije n'uwatsinze ibitego byinshi birenga 30 mu kanzu ya Viking, batangira nyuma y'imyaka irenga ibiri. Hamwe bayoboye ikipe ku bihembo bitatu ukurikiranya. Nimero 11 ya Jacker na 7 ya Sharo bizahora mu mateka ya Viking FC. Baje nk'abami, basubuka nk'imitego.",
+    ),
+    category: "retirement",
+    image: images.celebrate,
+    date: "2026-08-18",
+  },
+  {
+    id: "n-jocos",
+    slug: "retraite-coach-joseph-jocos-courbon",
+    title: L(
+      'Retirement of Coach Courbon "Jocos Ancelotti"',
+      'Départ à la Retraite du Coach Courbon "Jocos Ancelotti"',
+      'Gusubira mu kiruhuko kwa Coach Courbon "Jocos Ancelotti"',
+    ),
+    summary: L(
+      'With great emotion, Viking FC announces the retirement of Coach Courbon "Jocos Ancelotti" after more than two years at the head of the technical staff.',
+      'C\'est avec une grande émotion que Viking FC annonce le départ à la retraite de Coach Courbon "Jocos Ancelotti", après plus de deux ans à la tête de l\'équipe technique.',
+      'Viking FC yamenyesheje n\'umutima ko Coach Courbon "Jocos Ancelotti" asubira mu kiruhuko, nyuma y\'imyaka irenga ibiri ayoboye abatoza.',
+    ),
+    content: L(
+      'With great emotion, Viking FC announces the retirement of Coach Courbon "Jocos Ancelotti" after more than two years at the head of the technical staff. A true pioneer of Viking football, he led the club to three trophies during his tenure while developing players with high standards and care. A living legend of the club, he will be remembered as the architect of this glorious era. He arrived as a prince and leaves as a king of Kategate. Thank you coach, you will be missed.',
+      'C\'est avec une grande émotion que Viking FC annonce le départ à la retraite de Coach Courbon "Jocos Ancelotti", après plus de deux ans à la tête de l\'équipe technique. Véritable révolutionnaire du football viking, il a conduit le club à trois trophées durant son mandat, tout en formant et en accompagnant les joueurs avec exigence et bienveillance. Légende vivante du club, il restera dans les mémoires comme l\'architecte de cette ère glorieuse. Arrivé comme un prince, il repart comme un roi de Kategate. Merci coach, tu vas nous manquer.',
+      'Viking FC yamenyesheje n\'umutima ko Coach Courbon "Jocos Ancelotti" asubira mu kiruhuko, nyuma y\'imyaka irenga ibiri ayoboye abatoza. Ni umuntu wahinduye umupira w\'amaguru wa Viking, ayoboye ikipe ku bihembo bitatu mu gihe cye, akomeza gutanga imyitozo n\'uburyo bwiza ku bakinnyi. Azahora mu mateka nk\'uwubatsye iki gihe cy\'icyubahiro. Yaje nk\'umwami muto, asubuka nk\'umwami wa Kategate. Urakoze coach, tuzakwibuka.',
+    ),
+    category: "retirement",
+    image: images.coachJocos,
+    date: "2026-08-16",
+  },
+  // TODO: replace with real content
+  {
+    id: "n-placeholder-rck-preview",
+    slug: "preview-viking-fc-vs-rck",
+    title: L(
+      "Match Preview: Viking FC Host RCK Under Pressure",
+      "Avant-match : Viking FC reçoit RCK sous pression",
+      "Ibanze ry'umukino: Viking FC yakiriye RCK",
+    ),
+    summary: L(
+      "Placeholder — Leaders Viking FC prepare to host RCK in a pivotal GSAL-League clash at Ejo Heza Stadium. The coaching staff have intensified tactical sessions as the club aim to keep their perfect start alive.",
+      "Placeholder — Leaders Viking FC se préparent à recevoir RCK dans un choc décisif de GSAL-League à Ejo Heza. Le staff a intensifié les séances tactiques pour préserver le départ parfait du club.",
+      "Placeholder — Abayobozi ba Viking FC biteguye kwakira RCK mu mukino w'ingenzi wa GSAL-League kuri Ejo Heza. Abatoza bakomeje imyitozo kugira ngo bakomeze intsinzi.",
+    ),
+    content: L(
+      "Placeholder — Leaders Viking FC prepare to host RCK in a pivotal GSAL-League clash at Ejo Heza Stadium. The coaching staff have intensified tactical sessions as the club aim to keep their perfect start alive. Fans are expected in numbers for what could be one of the biggest home nights of the campaign so far.",
+      "Placeholder — Leaders Viking FC se préparent à recevoir RCK dans un choc décisif de GSAL-League à Ejo Heza. Le staff a intensifié les séances tactiques pour préserver le départ parfait du club. Les supporters sont attendus en nombre pour l'une des plus grandes soirées à domicile de la saison.",
+      "Placeholder — Abayobozi ba Viking FC biteguye kwakira RCK mu mukino w'ingenzi wa GSAL-League kuri Ejo Heza. Abatoza bakomeje imyitozo kugira ngo bakomeze intsinzi. Abafana biteganyijwe ku bwinshi muri uyu mukino ukomeye.",
+    ),
+    category: "matchReports",
+    image: images.pitch,
+    date: "2026-08-15",
+  },
+  // TODO: replace with real content
+  {
+    id: "n-placeholder-partner-day",
+    slug: "club-partners-community-day",
+    title: L(
+      "Partners & Community Day at Ejo Heza",
+      "Journée partenaires & communauté à Ejo Heza",
+      "Umunsi w'abafatanyabikorwa n'umuryango kuri Ejo Heza",
+    ),
+    summary: L(
+      "Placeholder — Viking FC and club partners Gitera Safari and Madeleine Group open the stadium gates for a community afternoon. Supporters, academy families and local guests will meet players ahead of the GSAL-League run-in.",
+      "Placeholder — Viking FC et les partenaires Gitera Safari et Madeleine Group ouvrent les portes du stade pour un après-midi communautaire. Supporters, familles de l'académie et invités locaux rencontreront les joueurs.",
+      "Placeholder — Viking FC n'abafatanyabikorwa Gitera Safari na Madeleine Group bafunguye sitade ku manywa y'umuryango. Abafana, imiryango y'akademi n'abashyitsi bahura n'abakinnyi.",
+    ),
+    content: L(
+      "Placeholder — Viking FC and club partners Gitera Safari and Madeleine Group open the stadium gates for a community afternoon. Supporters, academy families and local guests will meet players ahead of the GSAL-League run-in. The event underlines the club’s family spirit beyond matchdays.",
+      "Placeholder — Viking FC et les partenaires Gitera Safari et Madeleine Group ouvrent les portes du stade pour un après-midi communautaire. Supporters, familles de l'académie et invités locaux rencontreront les joueurs. L'événement rappelle l'esprit de famille du club au-delà des matchs.",
+      "Placeholder — Viking FC n'abafatanyabikorwa Gitera Safari na Madeleine Group bafunguye sitade ku manywa y'umuryango. Abafana, imiryango y'akademi n'abashyitsi bahura n'abakinnyi. Iki gikorwa kigaragara umuryango w'ikipe hanze y'imikino.",
+    ),
+    category: "club",
+    image: images.studio,
+    date: "2026-08-14",
+  },
+  // TODO: replace with real content
+  {
+    id: "n-placeholder-academy-prospect",
+    slug: "academy-prospect-earns-senior-look",
+    title: L(
+      "Academy Prospect Earns Senior Training Look",
+      "Un prospect de l'académie intégré aux entraînements seniors",
+      "Umwigishwa w'akademi ahabwa umwanya mu myitozo y'ikipe nkuru",
+    ),
+    summary: L(
+      "Placeholder — A standout from the Viking FC academy has been invited to first-team training after strong youth performances. The club continues to build a pathway from the centre de formation into the GSAL-League squad.",
+      "Placeholder — Un joueur marquant de l'académie Viking FC a été invité aux entraînements de l'équipe première après de solides performances chez les jeunes. Le club poursuit la passerelle vers l'effectif GSAL-League.",
+      "Placeholder — Umukinnyi w'akademi ya Viking FC ahamagawe mu myitozo y'ikipe nkuru nyuma y'imikino myiza mu bato. Ikipe ikomeza inzira kuva mu rwego rw'abato kugeza muri GSAL-League.",
+    ),
+    content: L(
+      "Placeholder — A standout from the Viking FC academy has been invited to first-team training after strong youth performances. The club continues to build a pathway from the centre de formation into the GSAL-League squad while sitting top of the third-division table.",
+      "Placeholder — Un joueur marquant de l'académie Viking FC a été invité aux entraînements de l'équipe première après de solides performances chez les jeunes. Le club poursuit la passerelle vers l'effectif GSAL-League tout en menant le classement de troisième division.",
+      "Placeholder — Umukinnyi w'akademi ya Viking FC ahamagawe mu myitozo y'ikipe nkuru nyuma y'imikino myiza mu bato. Ikipe ikomeza inzira kuva mu rwego rw'abato kugeza muri GSAL-League, ikaba iyoboye urutonde rw'icyiciro cya gatatu.",
+    ),
+    category: "academy",
+    image: images.stretch,
+    date: "2026-08-12",
+  },
+  {
     id: "n1",
-    slug: "vikings-ready-for-new-season",
-    title: "Vikings Ready for a New Season of Glory",
-    summary:
-      "The squad completed pre-season preparations with intensity and unity at the training ground.",
-    content:
-      "Viking FC enters the new campaign with renewed ambition. After weeks of demanding sessions, Coach Michel Nzeyimana praised the squad's mentality and sharpness ahead of Match Day 1.",
+    slug: "gsal-leaders-after-j10",
+    title: L(
+      "Viking FC top of GSAL-League after 10 matchdays",
+      "Viking FC en tête de la GSAL-League après 10 journées",
+      "Viking FC iyoboye GSAL-League nyuma y'imikino 10",
+    ),
+    summary: L(
+      "First place with 10 wins from 10, 30 points, 27 goals scored and 4 conceded (+23).",
+      "Première place avec 10 victoires en 10 matchs, 30 points, 27 buts marqués et 4 encaissés (+23).",
+      "Umwanya wa mbere n'intsinzi 10 mu mikino 10, amanota 30, ibitego 27 byatsinzwe na 4 byakiriwe (+23).",
+    ),
+    content: L(
+      "Viking FC lead the GSAL-League standings after 10 matchdays. The club remains unbeaten with 10 victories, 30 points, 27 goals scored, 4 conceded and a goal difference of +23.",
+      "Viking FC mène le classement de la GSAL-League après 10 journées. Le club reste invaincu avec 10 victoires, 30 points, 27 buts marqués, 4 encaissés et une différence de +23.",
+      "Viking FC iyoboye urutonde rwa GSAL-League nyuma y'imikino 10. Ikipe ntiyatsinzwe, ifite intsinzi 10, amanota 30, ibitego 27, byakiriwe 4 n'itandukaniro +23.",
+    ),
     category: "club",
     image: images.celebrate,
-    date: "2026-08-03",
+    date: "2026-08-10",
   },
   {
     id: "n2",
-    slug: "academy-stars-promoted",
-    title: "Three Academy Stars Promoted to First Team",
-    summary:
-      "The club continues its commitment to youth by elevating homegrown talent.",
-    content:
-      "Three standout academy players have been promoted following impressive performances in youth competitions and training with the seniors.",
-    category: "academy",
-    image: images.stretch,
-    date: "2026-08-01",
+    slug: "viking-5-0-black-star",
+    title: L(
+      "Viking FC 5–0 Black Star de Kigali",
+      "Viking FC 5–0 Black Star de Kigali",
+      "Viking FC 5–0 Black Star de Kigali",
+    ),
+    summary: L(
+      "Matchday 8 of the GSAL-League at Ejo Heza Stadium (8 August 2026).",
+      "8e journée de GSAL-League à Ejo Heza Stadium (8 août 2026).",
+      "Umukino wa 8 wa GSAL-League kuri Ejo Heza Stadium (8 Kanama 2026).",
+    ),
+    content: L(
+      "Viking FC defeated Black Star de Kigali 5–0 in GSAL-League matchday 8 at Ejo Heza Stadium on 8 August 2026.",
+      "Viking FC a battu Black Star de Kigali 5–0 lors de la 8e journée de GSAL-League à Ejo Heza Stadium le 8 août 2026.",
+      "Viking FC yatsinze Black Star de Kigali 5–0 mu mukino wa 8 wa GSAL-League kuri Ejo Heza Stadium ku ya 8 Kanama 2026.",
+    ),
+    category: "matchReports",
+    image: images.blueKit,
+    date: "2026-08-08",
   },
   {
     id: "n3",
-    slug: "match-report-rayon-force",
-    title: "Match Report: Viking FC 2-1 Rayon Force",
-    summary:
-      "A late winner sealed three vital points in a hard-fought home victory.",
-    content:
-      "Viking FC showed character to come from behind and defeat Rayon Force. The decisive goal arrived in the 84th minute to the roar of the Viking faithful.",
+    slug: "viking-2-0-aspk",
+    title: L("Viking FC 2–0 ASPK", "Viking FC 2–0 ASPK", "Viking FC 2–0 ASPK"),
+    summary: L(
+      "GSAL-League victory for Viking FC against ASPK.",
+      "Victoire de Viking FC en GSAL-League face à l'ASPK.",
+      "Intsinzi ya Viking FC muri GSAL-League kurwanya ASPK.",
+    ),
+    content: L(
+      "Viking FC beat ASPK 2–0 in the GSAL-League.",
+      "Viking FC a battu l'ASPK 2–0 en GSAL-League.",
+      "Viking FC yatsinze ASPK 2–0 muri GSAL-League.",
+    ),
     category: "matchReports",
-    image: images.blueKit,
-    date: "2026-07-28",
+    image: images.squad,
+    date: "",
   },
   {
     id: "n4",
-    slug: "new-signing-announcement",
-    title: "Club Confirms New Midfield Signing",
-    summary:
-      "A creative midfielder joins Viking FC to strengthen the engine room.",
-    content:
-      "The Directeur Sportif confirmed a new midfield addition as the club builds depth for a long Premier League and Cup campaign.",
-    category: "transfers",
-    image: images.jog,
-    date: "2026-07-25",
+    slug: "viking-1-0-black-panthers",
+    title: L(
+      "Viking FC 1–0 AS Black Panthers",
+      "Viking FC 1–0 AS Black Panthers",
+      "Viking FC 1–0 AS Black Panthers",
+    ),
+    summary: L(
+      "GSAL-League win for Viking FC against AS Black Panthers.",
+      "Victoire de Viking FC en GSAL-League face à AS Black Panthers.",
+      "Intsinzi ya Viking FC muri GSAL-League kurwanya AS Black Panthers.",
+    ),
+    content: L(
+      "Viking FC defeated AS Black Panthers 1–0 in the GSAL-League.",
+      "Viking FC a battu AS Black Panthers 1–0 en GSAL-League.",
+      "Viking FC yatsinze AS Black Panthers 1–0 muri GSAL-League.",
+    ),
+    category: "matchReports",
+    image: images.pitch,
+    date: "",
   },
   {
     id: "n5",
-    slug: "manager-interview",
-    title: "Exclusive Interview with Coach Michel",
-    summary:
-      "Our manager discusses tactics, culture and the Viking dream.",
-    content:
-      "In an exclusive sit-down, Coach Michel shared his football philosophy and why Viking FC is ready to compete at the highest level.",
-    category: "interviews",
-    image: images.portrait,
-    date: "2026-07-20",
+    slug: "viking-3-0-mapane",
+    title: L(
+      "Viking FC 3–0 Mapane FC",
+      "Viking FC 3–0 Mapane FC",
+      "Viking FC 3–0 Mapane FC",
+    ),
+    summary: L(
+      "GSAL-League victory for Viking FC against Mapane FC.",
+      "Victoire de Viking FC en GSAL-League face à Mapane FC.",
+      "Intsinzi ya Viking FC muri GSAL-League kurwanya Mapane FC.",
+    ),
+    content: L(
+      "Viking FC beat Mapane FC 3–0 in the GSAL-League.",
+      "Viking FC a battu Mapane FC 3–0 en GSAL-League.",
+      "Viking FC yatsinze Mapane FC 3–0 muri GSAL-League.",
+    ),
+    category: "matchReports",
+    image: images.run,
+    date: "",
   },
   {
     id: "n6",
-    slug: "training-week-intensity",
-    title: "Inside Training: High Intensity Week",
-    summary:
-      "Camera access to the Viking training pitch during a key preparation week.",
-    content:
-      "From warm-ups to tactical boards, this week's sessions showed a squad locked in and ready for battle.",
-    category: "training",
-    image: images.run,
-    date: "2026-07-18",
+    slug: "viking-2-0-la-selecao",
+    title: L(
+      "Viking FC 2–0 La Seleção",
+      "Viking FC 2–0 La Seleção",
+      "Viking FC 2–0 La Seleção",
+    ),
+    summary: L(
+      "GSAL-League win for Viking FC against La Seleção.",
+      "Victoire de Viking FC en GSAL-League face à La Seleção.",
+      "Intsinzi ya Viking FC muri GSAL-League kurwanya La Seleção.",
+    ),
+    content: L(
+      "Viking FC defeated La Seleção 2–0 in the GSAL-League.",
+      "Viking FC a battu La Seleção 2–0 en GSAL-League.",
+      "Viking FC yatsinze La Seleção 2–0 muri GSAL-League.",
+    ),
+    category: "matchReports",
+    image: images.jog,
+    date: "",
   },
 ];
 
 export const leagueTable = [
-  { pos: 1, team: "Viking FC", played: 10, won: 7, drawn: 2, lost: 1, gf: 21, ga: 8, gd: 13, pts: 23 },
-  { pos: 2, team: "Rayon Force", played: 10, won: 6, drawn: 3, lost: 1, gf: 18, ga: 9, gd: 9, pts: 21 },
-  { pos: 3, team: "Kigali United", played: 10, won: 6, drawn: 1, lost: 3, gf: 16, ga: 11, gd: 5, pts: 19 },
-  { pos: 4, team: "Sunrise FC", played: 10, won: 5, drawn: 3, lost: 2, gf: 14, ga: 10, gd: 4, pts: 18 },
-  { pos: 5, team: "Gasabo City", played: 10, won: 4, drawn: 3, lost: 3, gf: 12, ga: 12, gd: 0, pts: 15 },
-  { pos: 6, team: "Musanze United", played: 10, won: 3, drawn: 4, lost: 3, gf: 11, ga: 12, gd: -1, pts: 13 },
-  { pos: 7, team: "Huye Titans", played: 10, won: 3, drawn: 2, lost: 5, gf: 10, ga: 15, gd: -5, pts: 11 },
-  { pos: 8, team: "Muhanga Stars", played: 10, won: 2, drawn: 2, lost: 6, gf: 8, ga: 16, gd: -8, pts: 8 },
+  { pos: 1, team: "Viking FC", played: 10, won: 10, drawn: 0, lost: 0, gf: 27, ga: 4, gd: 23, pts: 30 },
+  { pos: 2, team: "ASPK", played: 10, won: 8, drawn: 1, lost: 1, gf: 31, ga: 7, gd: 24, pts: 25 },
+  { pos: 3, team: "RCK", played: 10, won: 6, drawn: 1, lost: 3, gf: 28, ga: 15, gd: 13, pts: 19 },
+  { pos: 4, team: "Black Panthers", played: 10, won: 6, drawn: 0, lost: 4, gf: 18, ga: 14, gd: 4, pts: 18 },
+  { pos: 5, team: "Mapane FC", played: 10, won: 2, drawn: 3, lost: 5, gf: 11, ga: 19, gd: -8, pts: 9 },
+  { pos: 6, team: "AS Training", played: 10, won: 2, drawn: 2, lost: 6, gf: 9, ga: 19, gd: -10, pts: 8 },
+  { pos: 7, team: "Black Star", played: 10, won: 1, drawn: 3, lost: 6, gf: 12, ga: 23, gd: -11, pts: 6 },
+  { pos: 8, team: "La Seleção", played: 10, won: 0, drawn: 0, lost: 10, gf: 9, ga: 44, gd: -35, pts: 0 },
 ];
 
 export const sponsors = [
+  { name: "Gitera Safari", logo: images.logo },
   { name: "Madeleine Group", logo: images.logo },
-  { name: "Nordic Energy", logo: images.logo },
-  { name: "Kigali Bank", logo: images.logo },
-  { name: "Arena Sportswear", logo: images.logo },
-  { name: "Horizon Telecom", logo: images.logo },
+];
+
+// TODO: replace with real transfer data from club communications
+export const mercatoPlaceholders = [
+  {
+    id: "m1",
+    initials: "JP",
+    name: "Player Name A",
+    role: "Forward",
+    detail: "Placeholder — incoming signing",
+    status: "signing" as const,
+  },
+  {
+    id: "m2",
+    initials: "MK",
+    name: "Player Name B",
+    role: "Midfielder",
+    detail: "Placeholder — from GSAL club",
+    status: "official" as const,
+  },
+  {
+    id: "m3",
+    initials: "DN",
+    name: "Player Name C",
+    role: "Defender",
+    detail: "Placeholder — contract extension",
+    status: "extension" as const,
+  },
+  {
+    id: "m4",
+    initials: "ST",
+    name: "Staff Name D",
+    role: "Assistant Coach",
+    detail: "Placeholder — technical staff",
+    status: "official" as const,
+  },
+  {
+    id: "m5",
+    initials: "RW",
+    name: "Player Name E",
+    role: "Goalkeeper",
+    detail: "Placeholder — academy promotion",
+    status: "trial" as const,
+  },
+  // TODO: replace with real transfer data
+  {
+    id: "m6",
+    initials: "EH",
+    name: "Erik Hakizimana",
+    role: "Defender",
+    detail: "Placeholder — from regional GSAL side",
+    status: "signing" as const,
+  },
+  // TODO: replace with real transfer data
+  {
+    id: "m7",
+    initials: "LN",
+    name: "Lars Niyonzima",
+    role: "Midfielder",
+    detail: "Placeholder — creative midfielder target",
+    status: "official" as const,
+  },
+  // TODO: replace with real transfer data
+  {
+    id: "m8",
+    initials: "SB",
+    name: "Sven Björnsson",
+    role: "Forward",
+    detail: "Placeholder — trialist striker",
+    status: "trial" as const,
+  },
+  // TODO: replace with real transfer data
+  {
+    id: "m9",
+    initials: "OU",
+    name: "Olivier Uwase",
+    role: "Goalkeeper",
+    detail: "Placeholder — backup goalkeeper option",
+    status: "signing" as const,
+  },
+  // TODO: replace with real transfer data
+  {
+    id: "m10",
+    initials: "KM",
+    name: "Knut Mugisha",
+    role: "Fitness Coach",
+    detail: "Placeholder — technical staff reinforcement",
+    status: "extension" as const,
+  },
 ];
 
 export const shopProducts = [

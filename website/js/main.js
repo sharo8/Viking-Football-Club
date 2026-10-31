@@ -206,12 +206,15 @@ function applyTranslations() {
 
 function initTheme() {
   const saved = localStorage.getItem("viking-theme") || "dark";
-  document.documentElement.classList.toggle("dark", saved === "dark");
+  const isDark = saved === "dark";
+  document.documentElement.classList.toggle("dark", isDark);
+  document.documentElement.style.colorScheme = isDark ? "dark" : "light";
 }
 
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle("dark");
   localStorage.setItem("viking-theme", isDark ? "dark" : "light");
+  document.documentElement.style.colorScheme = isDark ? "dark" : "light";
   const themeBtn = document.getElementById("themeToggle");
   if (themeBtn) themeBtn.innerHTML = themeIconHtml();
 }
@@ -435,6 +438,107 @@ function bindGalleryLightbox(rootSelector = "#galleryGrid") {
   });
 }
 
+let scrollObserver = null;
+
+function initScrollAnimations() {
+  if (typeof IntersectionObserver === "undefined") return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll(".reveal, .reveal-fade, .reveal-scale").forEach((el) => {
+      el.classList.add("is-visible");
+    });
+    return;
+  }
+
+  if (scrollObserver) {
+    scrollObserver.disconnect();
+  }
+
+  scrollObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+        } else {
+          entry.target.classList.remove("is-visible");
+        }
+      });
+    },
+    {
+      root: null,
+      rootMargin: "0px 0px -8% 0px",
+      threshold: 0.12,
+    },
+  );
+
+  const selectors = [
+    ".section-head",
+    ".section > .container > .section-label",
+    ".section > .container > .heading-lg",
+    ".news-card",
+    ".player-card",
+    ".staff-card",
+    ".service-card",
+    ".product-card",
+    ".team-card",
+    ".video-card",
+    ".gallery-item",
+    ".match-list-item",
+    ".fixture-row",
+    ".result-row",
+    ".table-wrap",
+    ".split",
+    ".quote",
+    ".contact-grid > *",
+    ".sponsor-item",
+    ".season-stat",
+    ".countdown-item",
+    ".match-day-grid > *",
+  ];
+
+  document.querySelectorAll(selectors.join(",")).forEach((el) => {
+    if (
+      !el.classList.contains("reveal") &&
+      !el.classList.contains("reveal-fade") &&
+      !el.classList.contains("reveal-scale")
+    ) {
+      if (
+        el.classList.contains("news-card") ||
+        el.classList.contains("player-card") ||
+        el.classList.contains("staff-card") ||
+        el.classList.contains("gallery-item") ||
+        el.classList.contains("sponsor-item")
+      ) {
+        el.classList.add("reveal-scale");
+      } else if (el.classList.contains("section-label") || el.classList.contains("heading-lg")) {
+        el.classList.add("reveal-fade");
+      } else {
+        el.classList.add("reveal");
+      }
+    }
+
+    const parentGrid = el.parentElement;
+    if (
+      parentGrid &&
+      (parentGrid.classList.contains("grid-3") ||
+        parentGrid.classList.contains("grid-2") ||
+        parentGrid.classList.contains("grid-4") ||
+        parentGrid.classList.contains("gallery-grid") ||
+        parentGrid.classList.contains("video-grid") ||
+        parentGrid.classList.contains("staff-grid") ||
+        parentGrid.classList.contains("countdown") ||
+        parentGrid.classList.contains("sponsor-list") ||
+        parentGrid.classList.contains("match-day-grid"))
+    ) {
+      const indexInParent = Array.from(parentGrid.children).indexOf(el);
+      if (indexInParent >= 0) {
+        el.style.transitionDelay = `${(indexInParent % 6) * 0.07}s`;
+      }
+    }
+
+    scrollObserver.observe(el);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   document.documentElement.lang = getLocale() === "rw" ? "rw" : getLocale();
@@ -444,9 +548,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavEvents();
   if (typeof initPage === "function") initPage();
   bindGalleryLightbox();
+  requestAnimationFrame(() => initScrollAnimations());
 
   document.addEventListener("localechange", () => {
     if (typeof initPage === "function") initPage();
     applyTranslations();
+    requestAnimationFrame(() => initScrollAnimations());
   });
 });

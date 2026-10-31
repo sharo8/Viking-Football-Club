@@ -34,7 +34,7 @@ export default function TeamsPage() {
     <>
       <PageHero
         title={t.teams.title}
-        subtitle="One Club. One Family. One Dream."
+        subtitle={`${t.hero.slogan1} ${t.hero.slogan2} ${t.hero.slogan3}`}
         image={images.squad}
       />
       <section className="section-pad bg-[var(--bg)]">

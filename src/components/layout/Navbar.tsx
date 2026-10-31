@@ -11,10 +11,9 @@ import {
   Sun,
   Moon,
   User,
-  Bell,
   ChevronDown,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { club } from "@/lib/data";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useTheme } from "@/components/providers/ThemeProvider";
@@ -35,9 +34,9 @@ const links = [
 ];
 
 const localeLabels: Record<Locale, string> = {
-  en: "🇬🇧 EN",
-  fr: "🇫🇷 FR",
-  rw: "🇷🇼 RW",
+  en: "EN",
+  fr: "FR",
+  rw: "RW",
 };
 
 export function Navbar() {
@@ -46,46 +45,55 @@ export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 40);
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(height > 0 ? Math.min(1, window.scrollY / height) : 0);
+    };
     onScroll();
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
     setOpen(false);
+    setLangOpen(false);
   }, [pathname]);
 
   if (pathname.startsWith("/admin")) return null;
 
+  const isDark = theme === "dark";
+
   return (
+    <>
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        scrolled || open
-          ? "bg-[var(--nav)] shadow-lg shadow-black/20 backdrop-blur-xl"
-          : "bg-gradient-to-b from-navy-deep/80 to-transparent"
+      className={`fixed inset-x-0 top-0 z-[100] border-b text-[var(--nav-text)] transition-[background-color,color,border-color,box-shadow,backdrop-filter,height] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        scrolled
+          ? "border-[var(--border)] bg-[var(--nav)]/95 shadow-[0_8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+          : "border-transparent bg-[var(--nav)]/80 backdrop-blur-md"
       }`}
     >
-      <div className="container-page flex h-16 items-center justify-between gap-3 md:h-20">
-        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+      <div className={`container-page flex items-center justify-between gap-3 transition-[height] duration-300 ${scrolled ? "h-14" : "h-16 md:h-[4.5rem]"}`}>
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <Image
             src={club.logo}
             alt="Viking FC"
             width={48}
             height={48}
-            className="h-10 w-10 object-contain md:h-12 md:w-12"
+            className={`h-10 w-10 object-contain md:h-11 md:w-11 ${isDark ? "brightness-110" : ""}`}
             priority
           />
           <div className="leading-none">
-            <p className="font-display text-xl text-white tracking-[0.12em] md:text-2xl">
+            <p className="font-display text-xl tracking-[0.12em] text-[var(--nav-text)] md:text-2xl">
               VIKING FC
             </p>
-            <p className="hidden text-[10px] uppercase tracking-[0.2em] text-white/60 sm:block">
-              Official Club
+            <p className="hidden font-data text-[10px] uppercase tracking-[0.2em] text-[var(--nav-text)]/70 sm:block">
+              {t.nav.officialClub}
             </p>
           </div>
         </Link>
@@ -96,14 +104,15 @@ export function Navbar() {
               link.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(link.href);
+
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-2.5 py-2 text-[11px] font-bold uppercase tracking-[0.12em] transition ${
+                className={`nav-link px-2.5 py-2 font-data text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-300 ${
                   active
-                    ? "text-red"
-                    : "text-white/75 hover:text-white"
+                    ? "is-active text-[var(--accent)]"
+                    : "text-[var(--nav-text)]/90 hover:text-[var(--accent)]"
                 }`}
               >
                 {t.nav[link.key]}
@@ -112,27 +121,21 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           <button
             type="button"
             aria-label="Search"
             onClick={() => setSearchOpen((v) => !v)}
-            className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white"
+            className="rounded-full p-2 text-[var(--nav-text)]/90 transition hover:bg-black/5 dark:hover:bg-white/10"
           >
             <Search size={18} />
           </button>
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="hidden rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white sm:inline-flex"
-          >
-            <Bell size={18} />
-          </button>
+
           <button
             type="button"
             aria-label="Toggle theme"
             onClick={toggleTheme}
-            className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white"
+            className="rounded-full p-2 text-[var(--nav-text)]/90 transition hover:bg-black/5 dark:hover:bg-white/10"
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.span
@@ -152,7 +155,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setLangOpen((v) => !v)}
-              className="flex items-center gap-1 rounded-full px-2 py-1.5 text-xs font-bold text-white/85 hover:bg-white/10"
+              className="flex items-center gap-1 rounded-full px-2 py-1.5 font-data text-[11px] font-semibold tracking-wider text-[var(--nav-text)] hover:bg-black/5 dark:hover:bg-white/10"
             >
               {localeLabels[locale]}
               <ChevronDown size={14} />
@@ -163,7 +166,7 @@ export function Navbar() {
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="absolute right-0 mt-2 min-w-[120px] overflow-hidden rounded-md border border-white/10 bg-navy-deep shadow-xl"
+                  className="absolute right-0 mt-2 min-w-[110px] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--card)] shadow-xl"
                 >
                   {(Object.keys(localeLabels) as Locale[]).map((code) => (
                     <button
@@ -173,10 +176,10 @@ export function Navbar() {
                         setLocale(code);
                         setLangOpen(false);
                       }}
-                      className={`block w-full px-3 py-2 text-left text-xs font-semibold ${
+                      className={`block w-full px-3 py-2 text-left font-data text-xs font-semibold ${
                         locale === code
-                          ? "bg-red text-white"
-                          : "text-white/80 hover:bg-white/10"
+                          ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                          : "text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/10"
                       }`}
                     >
                       {localeLabels[code]}
@@ -189,14 +192,14 @@ export function Navbar() {
 
           <Link
             href="/login"
-            className="hidden items-center gap-1 rounded-full px-2 py-1.5 text-white/80 hover:bg-white/10 hover:text-white sm:inline-flex"
+            className="hidden rounded-full p-2 text-[var(--nav-text)]/90 hover:bg-black/5 dark:hover:bg-white/10 sm:inline-flex"
           >
             <User size={18} />
           </Link>
 
           <button
             type="button"
-            className="inline-flex rounded-full p-2 text-white xl:hidden"
+            className="inline-flex rounded-full p-2 text-[var(--nav-text)] xl:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label="Menu"
           >
@@ -211,13 +214,13 @@ export function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="border-t border-white/10 bg-navy-deep/95"
+            className="overflow-hidden border-t border-[var(--border)] bg-[var(--nav)]"
           >
             <div className="container-page py-3">
               <input
                 type="search"
                 placeholder={t.nav.search + "..."}
-                className="w-full bg-white/5 px-4 py-3 text-sm text-white outline-none ring-1 ring-white/15 placeholder:text-white/40 focus:ring-red"
+                className="w-full bg-[var(--bg-alt)] px-4 py-3 text-sm text-[var(--text)] outline-none ring-1 ring-[var(--border)] placeholder:text-[var(--text-muted)] focus:ring-[var(--accent)]"
               />
             </div>
           </motion.div>
@@ -230,21 +233,31 @@ export function Navbar() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-white/10 bg-navy-deep xl:hidden"
+            className="overflow-hidden border-t border-[var(--border)] bg-[var(--nav)] xl:hidden"
           >
             <div className="container-page flex flex-col gap-1 py-4">
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="px-2 py-2.5 text-sm font-bold uppercase tracking-[0.14em] text-white/85 hover:text-red"
-                >
-                  {t.nav[link.key]}
-                </Link>
-              ))}
+              {links.map((link) => {
+                const active =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-2 py-2.5 font-data text-sm font-semibold uppercase tracking-[0.14em] ${
+                      active
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--nav-text)] hover:text-[var(--accent)]"
+                    }`}
+                  >
+                    {t.nav[link.key]}
+                  </Link>
+                );
+              })}
               <Link
                 href="/login"
-                className="mt-2 px-2 py-2.5 text-sm font-bold uppercase tracking-[0.14em] text-red"
+                className="mt-2 px-2 py-2.5 font-data text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]"
               >
                 {t.nav.login}
               </Link>
@@ -252,6 +265,11 @@ export function Navbar() {
           </motion.nav>
         )}
       </AnimatePresence>
+      <div className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--border)]" aria-hidden="true">
+        <div className="h-full bg-[var(--accent-brand)]" style={{ width: `${progress * 100}%` }} />
+      </div>
     </header>
+    <div className="h-16 shrink-0 md:h-[4.5rem]" aria-hidden="true" />
+    </>
   );
 }

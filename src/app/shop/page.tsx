@@ -2,14 +2,18 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { shopProducts, images } from "@/lib/data";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { PageHero } from "@/components/ui/PageHero";
+import { Reveal } from "@/components/ui/Reveal";
 
 type Cat = "all" | "jerseys" | "caps" | "scarves" | "boots" | "accessories";
 
 export default function ShopPage() {
   const { t } = useLocale();
+  const router = useRouter();
   const [cat, setCat] = useState<Cat>("all");
 
   const filters: { key: Cat; label: string }[] = [
@@ -40,9 +44,9 @@ export default function ShopPage() {
                 key={f.key}
                 type="button"
                 onClick={() => setCat(f.key)}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] ${
+                className={`px-4 py-2 font-data text-xs font-semibold uppercase tracking-[0.14em] ${
                   cat === f.key
-                    ? "bg-red text-white"
+                    ? "bg-[var(--accent)] text-[var(--accent-ink)]"
                     : "border border-[var(--border)]"
                 }`}
               >
@@ -51,32 +55,43 @@ export default function ShopPage() {
             ))}
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {list.map((product) => (
-              <article
-                key={product.id}
-                className="border border-[var(--border)] bg-[var(--bg-alt)]"
-              >
-                <div className="relative aspect-square overflow-hidden bg-navy/10">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width:768px) 50vw, 25vw"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-display text-xl tracking-wide">
-                    {product.name}
-                  </h3>
-                  <p className="mt-1 font-data text-sm font-semibold text-red">
-                    {product.price.toLocaleString()} RWF
-                  </p>
-                  <button type="button" className="btn-primary mt-4 w-full">
-                    {t.shop.addToCart}
-                  </button>
-                </div>
-              </article>
+            {list.map((product, i) => (
+              <Reveal key={product.id} variant="up" delay={(i % 8) * 60}>
+                <article className="card-surface overflow-hidden">
+                  <div className="relative aspect-square overflow-hidden bg-navy/10">
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition duration-500 hover:scale-105"
+                      sizes="(max-width:768px) 50vw, 25vw"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-display text-xl font-bold tracking-wide">
+                      <Link href={`/shop/${product.id}`}>{product.name}</Link>
+                    </h3>
+                    <p className="mt-1 font-data text-sm font-semibold text-[var(--accent)]">
+                      {product.price.toLocaleString()} RWF
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-primary mt-4 w-full"
+                      onClick={() => {
+                        const cart = JSON.parse(localStorage.getItem("vfc_cart") || "[]") as { id: string; qty: number }[];
+                        const found = cart.find((item) => item.id === product.id);
+                        const next = found
+                          ? cart.map((item) => (item.id === product.id ? { ...item, qty: item.qty + 1 } : item))
+                          : [...cart, { id: product.id, qty: 1 }];
+                        localStorage.setItem("vfc_cart", JSON.stringify(next));
+                        router.push("/shop/checkout");
+                      }}
+                    >
+                      {t.shop.addToCart}
+                    </button>
+                  </div>
+                </article>
+              </Reveal>
             ))}
           </div>
         </div>

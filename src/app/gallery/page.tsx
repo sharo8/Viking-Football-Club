@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { galleryItems, images } from "@/lib/data";
 import { useLocale } from "@/components/providers/LocaleProvider";
@@ -19,6 +19,7 @@ type Filter =
 export default function GalleryPage() {
   const { t } = useLocale();
   const [filter, setFilter] = useState<Filter>("all");
+  const [open, setOpen] = useState<number | null>(null);
 
   const filters: { key: Filter; label: string }[] = [
     { key: "all", label: t.news.categories.all },
@@ -37,6 +38,17 @@ export default function GalleryPage() {
     }
     return galleryItems.filter((g) => g.category === filter);
   }, [filter]);
+
+  useEffect(() => {
+    if (open === null) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(null);
+      if (event.key === "ArrowRight") setOpen((i) => (i === null ? i : (i + 1) % list.length));
+      if (event.key === "ArrowLeft") setOpen((i) => (i === null ? i : (i - 1 + list.length) % list.length));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, list.length]);
 
   return (
     <>
@@ -60,11 +72,12 @@ export default function GalleryPage() {
             ))}
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {list.map((item) => (
+            {list.map((item, index) => (
               <figure
                 key={item.id}
                 className="group relative aspect-[16/11] overflow-hidden border border-[var(--border)]"
               >
+                <button type="button" className="absolute inset-0 z-10" aria-label={item.title} onClick={() => setOpen(index)} />
                 <Image
                   src={item.image}
                   alt={item.title}
@@ -102,6 +115,14 @@ export default function GalleryPage() {
           </div>
         </div>
       </section>
+      {open !== null && list[open] ? (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-black/80 p-6" role="dialog" aria-modal="true" aria-label={list[open].title} onClick={() => setOpen(null)}>
+          <figure className="relative w-full max-w-4xl" onClick={(event) => event.stopPropagation()}>
+            <Image src={list[open].image} alt={list[open].title} width={1200} height={800} className="h-auto max-h-[80vh] w-full object-contain" />
+            <figcaption className="mt-3 text-center text-white">{list[open].title}</figcaption>
+          </figure>
+        </div>
+      ) : null}
     </>
   );
 }

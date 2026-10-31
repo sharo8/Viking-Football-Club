@@ -1,25 +1,38 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Manrope, JetBrains_Mono } from "next/font/google";
+import { Cinzel, Cinzel_Decorative, Inter, Work_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { AuthProvider } from "@/components/providers/AuthProvider";
+import { QueryProvider } from "@/components/providers/QueryProvider";
+import { SiteChrome } from "@/components/layout/SiteChrome";
 
-const bebas = Bebas_Neue({
-  weight: "400",
+const cinzel = Cinzel({
   subsets: ["latin"],
-  variable: "--font-display",
+  weight: ["500", "600", "700"],
+  variable: "--font-cinzel",
 });
 
-const manrope = Manrope({
+const cinzelDecorative = Cinzel_Decorative({
   subsets: ["latin"],
-  variable: "--font-body",
+  weight: ["700"],
+  variable: "--font-cinzel-decorative",
+});
+
+const workSans = Work_Sans({
+  subsets: ["latin"],
+  variable: "--font-work-sans",
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-data",
+  variable: "--font-jetbrains",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -37,15 +50,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("vfc_theme")||localStorage.getItem("viking-theme");if(t!=="dark"&&t!=="light"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.classList.toggle("dark",t==="dark");document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;var l=localStorage.getItem("vfc_lang")||localStorage.getItem("viking-locale");if(l)document.documentElement.lang=l;}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
-        className={`${bebas.variable} ${manrope.variable} ${jetbrains.variable} antialiased`}
+        className={`${cinzel.variable} ${cinzelDecorative.variable} ${workSans.variable} ${jetbrains.variable} ${inter.variable} antialiased`}
       >
         <ThemeProvider>
           <LocaleProvider>
-            <Navbar />
-            <main className="min-h-screen">{children}</main>
-            <Footer />
+            <QueryProvider>
+              <AuthProvider>
+                <SiteChrome>{children}</SiteChrome>
+              </AuthProvider>
+            </QueryProvider>
           </LocaleProvider>
         </ThemeProvider>
       </body>

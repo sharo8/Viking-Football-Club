@@ -2,7 +2,7 @@
 const CLUB = {
   name: "VIKING FC",
   slogan: "One Club. One Family. One Dream.",
-  logo: "logo/logo.png",
+  logo: "logo/viking-fc.png",
   email: "vikingfc.official@gmail.com",
   phone: "+250 788 123 456",
   address: "Ejo Heza, Kigali, Rwanda",
@@ -290,7 +290,7 @@ const LEAGUE_META = {
   venue: "Ejo Heza",
 };
 
-const SPONSORS = ["Madeleine Group", "Nordic Energy", "Kigali Bank", "Arena Sportswear", "Horizon Telecom"];
+const SPONSORS = ["Gitera Safari", "Madeleine Group"];
 
 const SHOP = [
   { id: "p1", name: "Home Jersey 2026", category: "jerseys", price: 45000, image: IMAGES.blueKit },

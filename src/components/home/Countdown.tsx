@@ -39,14 +39,14 @@ export function Countdown({ targetDate, labels }: Props) {
   return (
     <div className="grid grid-cols-4 gap-2 sm:gap-3">
       {items.map((item) => (
-        <div
-          key={item.label}
-          className="border border-white/15 bg-navy-deep/70 px-2 py-3 text-center backdrop-blur-md"
-        >
-          <p className="font-display text-2xl text-white sm:text-4xl">
+        <div key={item.label} className="countdown-cell">
+          <p
+            key={`${item.label}-${item.value}`}
+            className="countdown-digit font-display text-xl text-white sm:text-3xl"
+          >
             {String(item.value).padStart(2, "0")}
           </p>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">
+          <p className="mt-1 font-data text-[9px] font-semibold uppercase tracking-[0.14em] text-white/55">
             {item.label}
           </p>
         </div>

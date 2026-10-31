@@ -1,46 +1,17 @@
-# Viking FC — HTML / CSS / JavaScript
+# Viking FC — Site officiel
 
-Site officiel en **HTML, CSS et JavaScript** (sans React / Next.js).
+## Lancer
 
-## Ouvrir le site
-
-Double-clique sur :
-
-```
-website/index.html
-```
-
-Ou avec un serveur local :
+Depuis la racine du projet :
 
 ```bash
-cd website
-npx serve .
+npm run dev
 ```
 
-## Structure
+→ http://localhost:3000
 
-```
-website/
-├── index.html          ← Accueil (vidéo hero)
-├── css/style.css       ← Tous les styles
-├── js/
-│   ├── data.js         ← Joueurs, matchs, news...
-│   ├── i18n.js         ← EN / FR / Kinyarwanda
-│   └── main.js         ← Menu, thème, footer, countdown
-├── pages/              ← Toutes les autres pages
-├── logo/logo.png
-├── images/
-└── videos/hero.mp4
-```
+Ou ouvre `index.html` dans le navigateur.
 
-## Pages
+## Contenu
 
-Home · About · Teams · Matches · Players · Management · News · Gallery · Services · Shop · Contact · Login · Admin
-
-## Fonctions
-
-- Mode clair / sombre
-- Langues EN / FR / RW
-- Vidéo plein écran sur Home
-- Countdown prochain match
-- Instagram + TikTok dans Contact / Footer
+Accueil · About · Teams · Matches · Players · Management · News · Gallery · Services · Shop · Contact · Admin

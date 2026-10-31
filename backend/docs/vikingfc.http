@@ -1,0 +1,51 @@
+### Viking FC — IntelliJ HTTP client
+@host = http://localhost:8080
+@email = president@vikingfc.rw
+@password = ChangeMe@2026
+
+### Login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {% client.global.set("token", response.body.data.accessToken); %}
+
+### Me
+GET {{host}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Finance summary (executive)
+GET {{host}}/api/finance/summary
+Authorization: Bearer {{token}}
+
+### Players
+GET {{host}}/api/players
+Authorization: Bearer {{token}}
+
+### Data warnings
+GET {{host}}/api/players/data-warnings
+Authorization: Bearer {{token}}
+
+### Captains
+GET {{host}}/api/captains
+Authorization: Bearer {{token}}
+
+### Attendance KPIs
+GET {{host}}/api/attendance/kpis
+Authorization: Bearer {{token}}
+
+### Fines summary
+GET {{host}}/api/fines/summary
+Authorization: Bearer {{token}}
+
+### Executive dashboard
+GET {{host}}/api/dashboard/executive
+Authorization: Bearer {{token}}
+
+### Matches
+GET {{host}}/api/matches
+Authorization: Bearer {{token}}

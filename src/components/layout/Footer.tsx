@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Instagram, Facebook, Youtube, MessageCircle } from "lucide-react";
 import { club, sponsors } from "@/lib/data";
 import { useLocale } from "@/components/providers/LocaleProvider";
+import { Reveal } from "@/components/ui/Reveal";
 
 function TikTokIcon({ size = 18 }: { size?: number }) {
   return (
@@ -30,136 +31,111 @@ export function Footer() {
     { href: "/contact", label: t.nav.contact },
   ];
 
+  const social = [
+    {
+      href: club.social.instagram,
+      label: "Instagram",
+      icon: <Instagram size={18} />,
+    },
+    { href: club.social.tiktok, label: "TikTok", icon: <TikTokIcon size={18} /> },
+    {
+      href: club.social.facebook,
+      label: "Facebook",
+      icon: <Facebook size={18} />,
+    },
+    {
+      href: club.social.youtube,
+      label: "YouTube",
+      icon: <Youtube size={18} />,
+    },
+    {
+      href: club.social.whatsapp,
+      label: "WhatsApp",
+      icon: <MessageCircle size={18} />,
+    },
+  ];
+
   return (
-    <footer className="border-t border-[var(--border)] bg-navy text-white">
-      <div className="container-page section-pad grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <div className="mb-4 flex items-center gap-3">
-            <Image
-              src={club.logo}
-              alt="Viking FC"
-              width={56}
-              height={56}
-              className="h-14 w-14 object-contain"
-            />
-            <div>
-              <p className="font-display text-2xl tracking-[0.12em]">VIKING FC</p>
-              <p className="text-xs text-white/60">{club.slogan}</p>
+    <footer className="footer-shell">
+      <div className="container-page py-12 md:py-14">
+        <div className="grid items-start gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_0.9fr_0.85fr_1fr] lg:gap-8 xl:gap-10">
+          <Reveal variant="up" once delay={0} className="min-w-0">
+            <div className="mb-4 flex items-center gap-3">
+              <Image
+                src={club.logo}
+                alt="Viking FC"
+                width={52}
+                height={52}
+                className="h-12 w-12 object-contain"
+              />
+              <p className="font-display text-xl tracking-[0.1em] text-[var(--footer-ink)] md:text-2xl">
+                VIKING FC
+              </p>
             </div>
-          </div>
-          <p className="text-sm leading-relaxed text-white/70">
-            Professional football. Family spirit. European ambition.
-          </p>
-        </div>
-
-        <div>
-          <h3 className="mb-4 font-display text-xl tracking-wider text-gold">
-            {t.footer.quickLinks}
-          </h3>
-          <ul className="space-y-2">
-            {quick.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="text-sm text-white/70 transition hover:text-red"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-4 font-display text-xl tracking-wider text-gold">
-            {t.sponsors.title}
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            {sponsors.slice(0, 4).map((s) => (
-              <span
-                key={s.name}
-                className="border border-white/15 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-white/70"
-              >
-                {s.name}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="mb-4 font-display text-xl tracking-wider text-gold">
-            {t.newsletter.title}
-          </h3>
-          <form
-            className="flex flex-col gap-2"
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <input
-              type="email"
-              required
-              placeholder={t.newsletter.placeholder}
-              className="bg-white/5 px-3 py-2.5 text-sm outline-none ring-1 ring-white/15 placeholder:text-white/40 focus:ring-red"
-            />
-            <button type="submit" className="btn-primary">
-              {t.newsletter.subscribe}
-            </button>
-          </form>
-          <div className="mt-5">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-white/50">
-              {t.footer.follow}
+            <p className="mb-3 text-sm italic tracking-wide text-[var(--footer-muted)]">
+              {club.slogan}
             </p>
-            <div className="flex gap-3">
-              <a
-                href={club.social.instagram}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Instagram"
-                className="rounded-full bg-white/10 p-2 hover:bg-red"
-              >
-                <Instagram size={18} />
-              </a>
-              <a
-                href={club.social.tiktok}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="TikTok"
-                className="rounded-full bg-white/10 p-2 hover:bg-red"
-              >
-                <TikTokIcon />
-              </a>
-              <a
-                href={club.social.facebook}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Facebook"
-                className="rounded-full bg-white/10 p-2 hover:bg-red"
-              >
-                <Facebook size={18} />
-              </a>
-              <a
-                href={club.social.youtube}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="YouTube"
-                className="rounded-full bg-white/10 p-2 hover:bg-red"
-              >
-                <Youtube size={18} />
-              </a>
-              <a
-                href={club.social.whatsapp}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="WhatsApp"
-                className="rounded-full bg-white/10 p-2 hover:bg-red"
-              >
-                <MessageCircle size={18} />
-              </a>
+            <p className="max-w-sm text-sm leading-relaxed text-[var(--footer-muted)]">
+              {t.footer.mission}
+            </p>
+          </Reveal>
+
+          <Reveal variant="up" once delay={90} className="min-w-0">
+            <h3 className="footer-group-title">{t.footer.quickLinks}</h3>
+            <ul className="space-y-2.5">
+              {quick.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="footer-link-bar">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
+          <Reveal variant="up" once delay={180} className="min-w-0">
+            <h3 className="footer-group-title">{t.sponsors.title}</h3>
+            <ul className="space-y-3">
+              {sponsors.map((s) => (
+                <li key={s.name}>
+                  <span className="footer-partner-chip">{s.name}</span>
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+
+          <Reveal variant="up" once delay={270} className="min-w-0">
+            <h3 className="footer-group-title">{t.footer.follow}</h3>
+            <div className="mb-5 flex flex-wrap gap-2.5">
+              {social.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  className="social-orb-lg"
+                >
+                  {item.icon}
+                </a>
+              ))}
             </div>
-          </div>
+            <Link
+              href="#newsletter"
+              className="btn-outline inline-flex !min-h-[2.5rem] !rounded-md !border-[var(--footer-ink)] !px-4 !py-0 !text-[0.68rem] !text-[var(--footer-ink)] hover:!bg-[var(--footer-ink)] hover:!text-[var(--footer-bg)]"
+            >
+              {t.newsletter.subscribe}
+            </Link>
+          </Reveal>
         </div>
       </div>
-      <div className="border-t border-white/10 py-5 text-center text-xs text-white/50">
-        {t.footer.copyright}
+
+      <div className="footer-bottom">
+        <div className="container-page flex items-center justify-center py-4 md:py-5">
+          <p className="font-data text-[0.58rem] uppercase tracking-[0.14em] text-[var(--footer-muted)]">
+            {t.footer.copyright}
+          </p>
+        </div>
       </div>
     </footer>
   );

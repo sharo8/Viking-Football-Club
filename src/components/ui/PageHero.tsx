@@ -17,19 +17,22 @@ export function PageHero({ title, subtitle, image }: Props) {
         alt=""
         fill
         priority
-        className="object-cover brightness-[0.45] contrast-[1.05]"
+        className="object-cover"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-navy-deep via-navy/50 to-navy/30" />
-      <div className="container-page relative">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+      <div className="container-page relative text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+          className="mx-auto flex w-full max-w-3xl flex-col items-center"
         >
-          <h1 className="heading-xl">{title}</h1>
+          <h1 className="heading-xl drop-shadow-[0_6px_20px_rgba(0,0,0,0.4)]">
+            {title}
+          </h1>
           {subtitle && (
-            <p className="mt-3 max-w-2xl text-base text-white/75 md:text-lg">
+            <p className="mt-3 max-w-2xl text-base text-white/85 md:text-lg">
               {subtitle}
             </p>
           )}

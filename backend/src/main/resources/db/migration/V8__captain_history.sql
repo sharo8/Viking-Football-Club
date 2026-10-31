@@ -1,0 +1,5 @@
+ALTER TABLE players ADD COLUMN IF NOT EXISTS address VARCHAR(200);
+ALTER TABLE team_captains ADD COLUMN IF NOT EXISTS started_at TIMESTAMP;
+ALTER TABLE team_captains ADD COLUMN IF NOT EXISTS ended_at TIMESTAMP;
+ALTER TABLE team_captains DROP CONSTRAINT IF EXISTS uq_captain_rank;
+ALTER TABLE team_captains DROP CONSTRAINT IF EXISTS uq_captain_player;

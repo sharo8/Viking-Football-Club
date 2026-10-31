@@ -18,21 +18,37 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+const htmlLang: Record<Locale, string> = {
+  en: "en",
+  fr: "fr",
+  rw: "rw",
+};
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
 
   useEffect(() => {
-    const stored = localStorage.getItem("viking-locale") as Locale | null;
-    if (stored && translations[stored]) setLocaleState(stored);
+    const stored = (localStorage.getItem("vfc_lang") || localStorage.getItem("viking-locale")) as Locale | null;
+    if (stored && stored in translations) setLocaleState(stored);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = htmlLang[locale];
+  }, [locale]);
+
   const setLocale = (next: Locale) => {
+    if (!(next in translations)) return;
     setLocaleState(next);
+    localStorage.setItem("vfc_lang", next);
     localStorage.setItem("viking-locale", next);
   };
 
   const value = useMemo(
-    () => ({ locale, setLocale, t: translations[locale] }),
+    () => ({
+      locale,
+      setLocale,
+      t: translations[locale] as TranslationKeys,
+    }),
     [locale],
   );
 

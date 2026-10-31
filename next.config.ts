@@ -1,9 +1,10 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
-    unoptimized: true,
+    unoptimized: false,
   },
+  // Hide the Next.js "N" dev badge
+  devIndicators: false,
 };
 
 export default nextConfig;

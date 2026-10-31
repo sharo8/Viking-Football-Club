@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
-import { club, images } from "@/lib/data";
+import { images } from "@/lib/data";
 import { useLocale } from "@/components/providers/LocaleProvider";
 
 export function Hero() {
@@ -12,7 +11,7 @@ export function Hero() {
   return (
     <section className="relative min-h-[100svh] overflow-hidden bg-navy-deep">
       <video
-        className="absolute inset-0 h-full w-full object-cover brightness-[0.55] contrast-[1.08] saturate-[1.05]"
+        className="hero-video"
         autoPlay
         muted
         loop
@@ -21,56 +20,50 @@ export function Hero() {
       >
         <source src={images.heroVideo} type="video/mp4" />
       </video>
-      <div className="absolute inset-0 bg-gradient-to-b from-navy-deep/55 via-navy/35 to-navy-deep" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(6,20,39,0.75)_100%)]" />
 
-      <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pb-16 pt-28 text-center text-white">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.88 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          <Image
-            src={club.logo}
-            alt="Viking FC"
-            width={160}
-            height={160}
-            priority
-            className="mx-auto mb-6 h-28 w-28 object-contain drop-shadow-[0_8px_30px_rgba(0,0,0,0.55)] md:h-40 md:w-40"
-          />
-        </motion.div>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/55" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
 
-        <motion.h1
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.7 }}
-          className="font-display text-[clamp(3.4rem,12vw,8rem)] leading-[0.9] tracking-[0.06em] text-white"
-        >
-          {t.hero.brand}
-        </motion.h1>
+      <div className="relative z-10 flex min-h-[100svh] w-full flex-col items-center justify-center px-4 pb-20 pt-24 text-center md:pb-24">
+        <div className="mx-auto flex w-full max-w-3xl flex-col items-center text-center text-white">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="font-hero-brand w-full text-center text-[clamp(2rem,5.5vw,3.6rem)] leading-[1.08] tracking-[0.08em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.65)]"
+          >
+            {t.hero.brand}
+          </motion.h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.7 }}
-          className="mt-5 max-w-xl text-base font-medium tracking-wide text-white/85 md:text-xl"
-        >
-          {t.hero.slogan1} {t.hero.slogan2} {t.hero.slogan3}
-        </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.65 }}
+            className="mt-4 w-full text-center text-sm font-medium tracking-wide text-white/95 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] md:mt-5 md:text-base"
+          >
+            {t.hero.slogan1} {t.hero.slogan2} {t.hero.slogan3}
+          </motion.p>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45, duration: 0.7 }}
-          className="mt-9 flex flex-wrap items-center justify-center gap-3"
-        >
-          <Link href="/news" className="btn-primary">
-            {t.hero.latestNews}
-          </Link>
-          <Link href="/matches" className="btn-outline text-white">
-            {t.hero.nextMatch}
-          </Link>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.24, duration: 0.65 }}
+            className="mt-7 flex flex-wrap items-center justify-center gap-3 md:mt-8"
+          >
+            <Link
+              href="/news"
+              className="btn-primary !px-5 !py-2.5 !text-[0.72rem]"
+            >
+              {t.hero.latestNews}
+            </Link>
+            <Link
+              href="/matches"
+              className="btn-outline text-white !px-5 !py-2.5 !text-[0.72rem]"
+            >
+              {t.hero.nextMatch}
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
