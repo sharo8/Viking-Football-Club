@@ -10,7 +10,7 @@ function still() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function Button({ variant = "secondary", size = "md", icon, loading, children, className = "", ...props }) {
+export function Button({ variant = "secondary", size = "md", icon = /** @type {any} */ (null), loading = /** @type {any} */ (false), children, className = "", ...props }) {
   return (
     <button type="button" className={`vfc-btn vfc-btn--${variant} vfc-btn--${size} ${className}`} disabled={loading || props.disabled} {...props}>
       {loading ? <Loader2 className="vfc-spin" size={16} /> : icon}
@@ -27,7 +27,7 @@ export function IconButton({ label, children, ...props }) {
   );
 }
 
-export function Field({ label, required, error, hint, children }) {
+export function Field({ label, required = false, error = /** @type {any} */ (undefined), hint = /** @type {any} */ (undefined), children }) {
   return (
     <label className={`vfc-field${error ? " is-error" : ""}`}>
       {label ? <span className="vfc-label">{label}{required ? <i>*</i> : null}</span> : null}
@@ -79,7 +79,7 @@ export function Switch({ checked, onChange, label }) {
   );
 }
 
-export function Modal({ title, subtitle, leading, onClose, size = "md", footer, children, closeLabel = "Close" }) {
+export function Modal({ title, subtitle = /** @type {any} */ (undefined), leading = /** @type {any} */ (null), onClose, size = "md", footer = /** @type {any} */ (null), children, closeLabel = "Close" }) {
   const ref = useRef(null);
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -155,7 +155,7 @@ function avatarTone(name) {
   return AVATAR_TONES[hash];
 }
 
-export function Avatar({ name, src, size = "md", ring = false, status }) {
+export function Avatar({ name, src, size = "md", ring = false, status = /** @type {any} */ (undefined) }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => { setFailed(false); }, [src]);
   const url = !failed && src ? getMediaUrl(src) : "";

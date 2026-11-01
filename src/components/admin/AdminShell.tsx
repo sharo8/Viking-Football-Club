@@ -153,7 +153,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || user.mustChangePassword) return;
     getData("/api/notifications")
-      .then((rows) => setNotes((rows || []).map((row) => ({ id: String(row.id), text: row.title || row.body || "", read: Boolean(row.read) }))))
+      .then((rows) => setNotes((rows || []).map((row: { id?: string | number; title?: string; body?: string; read?: boolean }) => ({ id: String(row.id), text: row.title || row.body || "", read: Boolean(row.read) }))))
       .catch(() => setNotes([]));
   }, [user]);
 

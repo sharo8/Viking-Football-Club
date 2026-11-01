@@ -203,11 +203,11 @@ function Board({ bucket, title, fields, seed }: { bucket: string; title: string;
               <label key={field.key} className="vfc-field">
                 <span className="vfc-label">{field.label}</span>
                 {field.type === "select" ? (
-                  <SelectInput value={String(draft[field.key] ?? field.options?.[0] ?? "")} onChange={(event) => setDraft({ ...draft, [field.key]: event.target.value })}>
+                  <SelectInput value={String(draft[field.key] ?? field.options?.[0] ?? "")} onChange={(event: any) => setDraft({ ...draft, [field.key]: event.target.value })}>
                     {field.options?.map((option) => <option key={option}>{option}</option>)}
                   </SelectInput>
                 ) : (
-                  <TextInput type={field.type === "number" ? "number" : "text"} value={String(draft[field.key] ?? "")} onChange={(event) => setDraft({ ...draft, [field.key]: field.type === "number" ? Number(event.target.value) : event.target.value })} />
+                  <TextInput type={field.type === "number" ? "number" : "text"} value={String(draft[field.key] ?? "")} onChange={(event: any) => setDraft({ ...draft, [field.key]: field.type === "number" ? Number(event.target.value) : event.target.value })} />
                 )}
               </label>
             ))}
@@ -241,48 +241,48 @@ function Board({ bucket, title, fields, seed }: { bucket: string; title: string;
 async function loadSection(section: string): Promise<Row[]> {
   const text = (value: unknown) => (value == null ? "" : String(value));
   if (section === "players") {
-    const rows = await getData("/api/players");
+    const rows = (await getData("/api/players")) as any[];
     return rows.map((row) => ({ id: row.id, name: row.knownAs || row.fullName, number: row.jerseyNumber ?? "", position: text(row.position) }));
   }
   if (section === "staff") {
-    const rows = await getData("/api/staff");
+    const rows = (await getData("/api/staff")) as any[];
     return rows.map((row) => ({ id: row.id, name: row.fullName || row.name, role: text(row.role) }));
   }
   if (section === "matches") {
-    const rows = await getData("/api/matches");
+    const rows = (await getData("/api/matches")) as any[];
     return rows.map((row) => ({ id: row.id, opponent: text(row.opponent), date: text(row.kickoffDate || row.kickoff), status: text(row.status) }));
   }
   if (section === "partners" || section === "sponsors") {
-    const rows = await getData("/api/partners");
+    const rows = (await getData("/api/partners")) as any[];
     return rows.map((row) => ({ id: row.id, name: text(row.name), tier: text(row.category || row.status) }));
   }
   if (section === "table") {
-    const rows = await getData("/api/standings");
-    return (rows || []).map((row, index) => ({ id: row.id || index, team: text(row.team || row.name), pts: row.points ?? row.pts ?? 0, played: row.played ?? 0 }));
+    const rows = ((await getData("/api/standings")) || []) as any[];
+    return rows.map((row, index) => ({ id: row.id || index, team: text(row.team || row.name), pts: row.points ?? row.pts ?? 0, played: row.played ?? 0 }));
   }
   if (section === "users") {
-    const rows = await getData("/api/users");
+    const rows = (await getData("/api/users")) as any[];
     return rows.map((row) => ({ id: row.id, name: text(row.fullName), email: text(row.email), role: text(row.role) }));
   }
   if (section === "fines") {
     const rows = await getData("/api/fines/ledger");
-    const list = Array.isArray(rows) ? rows : rows.content || [];
+    const list = (Array.isArray(rows) ? rows : rows.content || []) as any[];
     return list.map((row) => ({ id: row.id, name: text(row.player || row.playerName), reason: text(row.reason || row.fineType), amount: row.amount ?? 0, status: text(row.status) }));
   }
   if (section === "medical") {
     const body = await getData("/api/medical/dashboard");
-    return (body.notCleared || []).map((row) => ({ id: row.id || row.playerId, name: text(row.name), injury: text(row.bodyPart || row.injuryType), status: text(row.status) }));
+    return ((body.notCleared || []) as any[]).map((row) => ({ id: row.id || row.playerId, name: text(row.name), injury: text(row.bodyPart || row.injuryType), status: text(row.status) }));
   }
   if (section === "transfers") {
-    const rows = await getData("/api/transfers");
+    const rows = (await getData("/api/transfers")) as any[];
     return rows.map((row) => ({ id: row.id, name: text(row.player || row.name), direction: text(row.direction), status: text(row.status) }));
   }
   if (section === "audit") {
     const body = await getData("/api/audit", { page: 0, size: 20 });
-    return (body.content || []).map((row) => ({ id: row.id, actor: text(row.actor), action: text(row.action), reason: text(row.after), when: text(row.at) }));
+    return ((body.content || []) as any[]).map((row) => ({ id: row.id, actor: text(row.actor), action: text(row.action), reason: text(row.after), when: text(row.at) }));
   }
   if (section === "finance") {
-    const rows = await getData("/api/finance/unpaid");
+    const rows = (await getData("/api/finance/unpaid")) as any[];
     return rows.map((row) => ({ id: row.id, name: text(row.name), seasonal: row.amountDue ?? 0, paid: row.amountPaid ?? 0, status: text(row.status) }));
   }
   return [];
@@ -455,7 +455,7 @@ function Profile() {
   const rise = (index: number) => stillMotion() ? {} : {
     initial: { opacity: 0, y: 14 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.4, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.4, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] as const },
   };
 
   return (
@@ -472,19 +472,19 @@ function Profile() {
       <motion.form className="admin-card profile-card" {...rise(1)} onSubmit={(event) => { event.preventDefault(); saveProfile(); }}>
         <p className="profile-note">{copy.emailOnly}</p>
         <Field label={copy.name}><TextInput value={user.fullName} readOnly /></Field>
-        <Field label={copy.email} required><TextInput type="email" value={email} autoComplete="email" onChange={(event) => setEmail(event.target.value)} /></Field>
+        <Field label={copy.email} required><TextInput type="email" value={email} autoComplete="email" onChange={(event: any) => setEmail(event.target.value)} /></Field>
         <Field label={copy.phone} error={phoneError} hint={phoneError ? undefined : "+250 7XX XXX XXX"}><PhoneInput value={phone} aria-label={copy.phone} onChange={setPhone} /></Field>
         <Field label={copy.role}><TextInput value={ROLE_LABEL[user.role] || user.role} readOnly /></Field>
         <div className="profile-pair">
           <Field label={copy.language}>
-            <SelectInput aria-label={copy.language} value={locale} onChange={(event) => setLocale(event.target.value as "en" | "fr" | "rw")}>
+            <SelectInput aria-label={copy.language} value={locale} onChange={(event: any) => setLocale(event.target.value as "en" | "fr" | "rw")}>
               <option value="en">EN</option>
               <option value="fr">FR</option>
               <option value="rw">RW</option>
             </SelectInput>
           </Field>
           <Field label={copy.theme}>
-            <SelectInput aria-label={copy.theme} value={theme} onChange={(event) => setTheme(event.target.value as "light" | "dark")}>
+            <SelectInput aria-label={copy.theme} value={theme} onChange={(event: any) => setTheme(event.target.value as "light" | "dark")}>
               <option value="light">{copy.light}</option>
               <option value="dark">{copy.dark}</option>
             </SelectInput>
@@ -517,7 +517,7 @@ function Profile() {
         {fileUrl ? (
           <motion.div className="photo-preview" initial={stillMotion() ? false : { opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}>
             <img src={fileUrl} alt="" style={{ transform: `scale(${zoom})` }} />
-            <Field label={copy.zoom}><TextInput type="range" min={1} max={2.4} step={0.05} value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></Field>
+            <Field label={copy.zoom}><TextInput type="range" min={1} max={2.4} step={0.05} value={zoom} onChange={(event: any) => setZoom(Number(event.target.value))} /></Field>
             <Button variant="primary" loading={busy} onClick={saveCrop}>{copy.save}</Button>
           </motion.div>
         ) : null}
@@ -525,8 +525,8 @@ function Profile() {
 
       <motion.form id="password" className="admin-card profile-card" {...rise(3)} onSubmit={(event) => { event.preventDefault(); savePassword(); }}>
         <h2>{copy.changePassword}</h2>
-        <Field label={copy.currentPassword} required><TextInput type="password" value={currentPassword} autoComplete="current-password" onChange={(event) => setCurrentPassword(event.target.value)} /></Field>
-        <Field label={copy.newPassword} required><TextInput type="password" minLength={8} value={newPassword} autoComplete="new-password" onChange={(event) => setNewPassword(event.target.value)} /></Field>
+        <Field label={copy.currentPassword} required><TextInput type="password" value={currentPassword} autoComplete="current-password" onChange={(event: any) => setCurrentPassword(event.target.value)} /></Field>
+        <Field label={copy.newPassword} required><TextInput type="password" minLength={8} value={newPassword} autoComplete="new-password" onChange={(event: any) => setNewPassword(event.target.value)} /></Field>
         <Button variant="primary" type="submit" loading={busy} {...(!currentPassword || newPassword.length < 8 ? { disabled: true } : {})}>{copy.save}</Button>
       </motion.form>
     </section>
