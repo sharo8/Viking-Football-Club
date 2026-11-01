@@ -421,6 +421,36 @@
   font-weight: 600;
 }
 
+.otp-boxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.otp-box {
+  width: 100%;
+  height: 58px;
+  border: 2px solid #ffffff;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1a0c10;
+  -webkit-text-fill-color: #1a0c10;
+  caret-color: #a3283a;
+  font: 700 28px/1 var(--font-inter), Inter, "Segoe UI", sans-serif;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.otp-box.is-filled {
+  border-color: #e0707f;
+}
+
+.otp-box:focus {
+  outline: 3px solid #a3283a;
+  outline-offset: 2px;
+  border-color: #a3283a;
+}
+
 .control {
   position: relative;
   display: flex;

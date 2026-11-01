@@ -33,7 +33,10 @@ public final class UserDtos {
             boolean executive,
             String phone,
             boolean active,
-            boolean mustChangePassword
+            boolean mustChangePassword,
+            java.time.Instant lastLoginAt,
+            java.time.Instant createdAt,
+            String photoUrl
     ) {
     }
 

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -95,13 +96,29 @@ public class ClubMailService {
 
     public String layout(String title, String body) {
         return """
-                <div style="font-family:Segoe UI,sans-serif;background:#0d1117;padding:24px">
-                  <div style="max-width:560px;margin:auto;background:#161b22;color:#f1f3f5;border-radius:16px;overflow:hidden">
-                    <div style="background:#a3283a;padding:18px 24px;color:#fff;font-weight:700;letter-spacing:.04em">VIKING FC</div>
-                    <div style="padding:24px"><h1 style="margin:0 0 12px;font-size:22px">%s</h1>%s</div>
-                    <div style="padding:16px 24px;color:#8b949e;font-size:12px">Viking FC · Kigali, Rwanda · ONE CLUB | ONE FAMILY | ONE MISSION</div>
-                  </div>
-                </div>
+                <!DOCTYPE html>
+                <html>
+                <body style="margin:0;padding:0;background:#f4f5f7;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:32px 12px;">
+                    <tr><td align="center">
+                      <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:100%%;max-width:520px;background:#ffffff;border-radius:22px;overflow:hidden;border:1px solid #e7e8ec;">
+                        <tr><td style="height:8px;background:#a3283a;font-size:0;line-height:0;">&nbsp;</td></tr>
+                        <tr><td align="center" style="padding:28px 24px 4px;">
+                          <img src="cid:viking-logo" width="148" alt="Viking FC" style="display:block;width:148px;height:auto;border:0;outline:none;" />
+                        </td></tr>
+                        <tr><td align="center" style="padding:4px 32px 0;font-family:Segoe UI,Arial,sans-serif;">
+                          <p style="margin:0;font-size:11px;letter-spacing:.24em;color:#a3283a;font-weight:700;">ONE CLUB · ONE FAMILY</p>
+                          <h1 style="margin:12px 0 0;font-size:22px;line-height:1.35;color:#111111;font-weight:700;">%s</h1>
+                        </td></tr>
+                        <tr><td style="padding:20px 32px 28px;font-family:Segoe UI,Arial,sans-serif;color:#1c1c1c;font-size:15px;line-height:1.5;">%s</td></tr>
+                        <tr><td align="center" style="padding:16px 24px 20px;background:#111111;font-family:Segoe UI,Arial,sans-serif;color:#f7f7f7;font-size:12px;line-height:1.6;">
+                          Viking FC · Kigali, Rwanda<br/>ONE CLUB | ONE FAMILY | ONE MISSION
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </body>
+                </html>
                 """.formatted(title, body);
     }
 
@@ -154,11 +171,15 @@ public class ClubMailService {
         }
         String from = settings.fromAddress() == null || settings.fromAddress().isBlank() ? smtpUsername : settings.fromAddress();
         var message = mailSender.getObject().createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
         helper.setFrom(from, settings.fromName() == null ? "Viking FC" : settings.fromName());
         helper.setTo(row.getToEmail());
         helper.setSubject(row.getSubject());
         helper.setText(row.getBodyHtml(), true);
+        ClassPathResource logo = new ClassPathResource("brand/logo.png");
+        if (logo.exists()) {
+            helper.addInline("viking-logo", logo);
+        }
         mailSender.getObject().send(message);
     }
 

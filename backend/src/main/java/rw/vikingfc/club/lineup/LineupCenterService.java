@@ -1,5 +1,7 @@
 package rw.vikingfc.club.lineup;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -26,6 +28,7 @@ import rw.vikingfc.club.match.MatchPlayerRecord;
 import rw.vikingfc.club.match.MatchPlayerRecordRepository;
 import rw.vikingfc.club.match.MatchService;
 import rw.vikingfc.club.match.MatchStatus;
+import rw.vikingfc.club.medical.Injury;
 import rw.vikingfc.club.medical.InjuryRepository;
 import rw.vikingfc.club.medical.InjuryStatus;
 import rw.vikingfc.club.player.Player;
@@ -45,8 +48,10 @@ import java.time.Period;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -68,6 +73,8 @@ public class LineupCenterService {
     private final LineupTransitionRepository transitionRepository;
     private final LineupFlagRepository flagRepository;
     private final LineupReminderRepository reminderRepository;
+    private final LineupSquadMemberRepository memberRepository;
+    private final CompetitionSquadRuleRepository competitionRuleRepository;
     private final MatchEventRepository eventRepository;
     private final FootballMatchRepository matchRepository;
     private final MatchPlayerRecordRepository recordRepository;
@@ -121,14 +128,25 @@ public class LineupCenterService {
             row.put("by", flag.getCreatedBy());
             return row;
         }).toList());
+        body.put("squadMembers", lineup == null ? List.of() : memberRepository.findByLineupIdOrderByBenchOrderAsc(lineup.getId()).stream().map(this::memberView).toList());
         body.put("permissions", permissions(lineup, match));
-        body.put("settings", Map.of(
-                "deadlineHours", settings.getLineupDeadlineHours(),
-                "maxBench", settings.getLineupMaxBench(),
-                "minSquad", settings.getLineupMinSquad(),
-                "maxSquad", settings.getLineupMaxSquad(),
-                "maxSubs", settings.getMaxSubstitutes(),
-                "publicLineup", settings.isPublicLineup()));
+        Map<String, Object> rules = new LinkedHashMap<>();
+        rules.put("deadlineHours", settings.getLineupDeadlineHours());
+        rules.put("maxBench", settings.getLineupMaxBench());
+        rules.put("minSquad", settings.getLineupMinSquad());
+        rules.put("maxSquad", settings.getLineupMaxSquad());
+        rules.put("defaultSquadSize", settings.getLineupDefaultSquadSize() == 0 ? 18 : settings.getLineupDefaultSquadSize());
+        rules.put("maxSubs", settings.getMaxSubstitutes());
+        Map<String, Object> kit = new LinkedHashMap<>();
+        kit.put("primary", settings.getKitPrimary());
+        kit.put("secondary", settings.getKitSecondary());
+        kit.put("number", settings.getKitNumberColor());
+        kit.put("gk", settings.getKitGkPrimary());
+        kit.put("away", settings.getKitAwayPrimary());
+        rules.put("kit", kit);
+        rules.put("publicLineup", settings.isPublicLineup());
+        rules.put("competitionRule", ruleFor(match, settings));
+        body.put("settings", rules);
         return body;
     }
 
@@ -270,7 +288,48 @@ public class LineupCenterService {
                 convocationRepository.save(call);
             }
         }
+        if (Boolean.TRUE.equals(request.notifyStaff())) {
+            notificationService.notifyRoles(List.of(Role.PRESIDENT, Role.GENERAL_MANAGER, Role.FINANCE_MANAGER, Role.HEAD_COACH, Role.ASSISTANT_COACH, Role.ASSISTANT_MANAGER, Role.DOCTOR),
+                    "CALLUPS", "Call-up list updated", match.getOpponent().getName(), "/admin/lineup?matchId=" + matchId + "&tab=callups");
+            return sendCalls(matchId, false);
+        }
         return sheet(matchId);
+    }
+
+    public Map<String, Object> confirmAndSend(Long matchId) {
+        if (!canCoach() && !SecurityUtils.isExecutive()) {
+            throw BusinessException.forbidden("Only a coach can confirm call-ups");
+        }
+        FootballMatch match = matchService.load(matchId);
+        LineupVersion lineup = ensure(match);
+        List<LineupSquadMember> members = memberRepository.findByLineupIdOrderByBenchOrderAsc(lineup.getId());
+        long called = members.stream().filter(LineupSquadMember::isCalled).count();
+        long keepers = members.stream().filter(member -> member.isCalled() && "GK".equals(member.getLineCode())).count();
+        if (members.isEmpty()) {
+            List<Convocation> rows = convocationRepository.findByMatchId(matchId);
+            called = rows.stream().filter(Convocation::isCalled).count();
+            keepers = rows.stream().filter(Convocation::isCalled).filter(row -> row.getPlayer().getPosition() == rw.vikingfc.club.player.Position.GOALKEEPER).count();
+        }
+        int size = lineup.getSquadSize() == null ? settingsService.current().getLineupDefaultSquadSize() : lineup.getSquadSize();
+        if (called != size) {
+            throw BusinessException.unprocessable("The matchday squad does not match the chosen size", "SQUAD_INVALID");
+        }
+        if (keepers < 2) {
+            throw BusinessException.unprocessable("The matchday squad needs two goalkeepers", "MIN_GOALKEEPERS");
+        }
+        Instant now = Instant.now(clock);
+        for (Convocation call : convocationRepository.findByMatchId(matchId)) {
+            if (call.isCalled()) {
+                call.setConfirmedByCoachAt(now);
+                call.setSendMode("SEND");
+            }
+        }
+        Map<String, Object> body = sendCalls(matchId, false);
+        notificationService.notifyRoles(List.of(Role.PRESIDENT, Role.GENERAL_MANAGER, Role.FINANCE_MANAGER, Role.HEAD_COACH, Role.ASSISTANT_COACH, Role.GOALKEEPER_COACH, Role.ASSISTANT_MANAGER, Role.DOCTOR),
+                "CALLUPS", "Call-ups confirmed for Viking FC vs " + match.getOpponent().getName() + ": " + called + " players, sent to players",
+                match.getCompetition(), "/admin/lineup?matchId=" + matchId + "&tab=callups");
+        auditService.record("CONFIRM_CALLUPS", "Convocation", matchId, null, String.valueOf(called), null);
+        return body;
     }
 
     public Map<String, Object> sendCalls(Long matchId, boolean pendingOnly) {
@@ -301,6 +360,8 @@ public class LineupCenterService {
                     call.getPlayer().getPreferredLanguage(), "CONVOCATION", String.valueOf(call.getId()));
             mailService.dispatch(row.getId());
             call.setNotifiedAt(Instant.now(clock));
+            call.setSentAt(Instant.now(clock));
+            call.setSendMode(pendingOnly ? "REMIND" : "SEND");
             userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(call.getPlayer().getEmail())
                     .ifPresent(user -> notificationService.notify(user, "LINEUP", "Match convocation", match.getOpponent().getName(), link));
             sent++;
@@ -378,30 +439,28 @@ public class LineupCenterService {
             throw BusinessException.forbidden("Only a coach can record a substitution");
         }
         FootballMatch match = matchService.load(matchId);
-        if (minute < 0 || minute > settingsService.current().getMatchLengthMinutes() + match.getStoppageMinutes()) {
-            throw BusinessException.unprocessable("That minute is outside the match");
-        }
+        Player leaving = playerRepository.findByIdAndActiveTrue(outId).orElseThrow(() -> NotFoundException.of("Player", outId));
+        Player entering = playerRepository.findByIdAndActiveTrue(inId).orElseThrow(() -> NotFoundException.of("Player", inId));
         long used = eventRepository.findByMatchIdOrderByEventMinuteAsc(matchId).stream()
                 .filter(event -> event.getEventType() == EventType.SUB_IN).count();
-        if (used >= settingsService.current().getMaxSubstitutes()) {
-            throw BusinessException.unprocessable("The substitution limit for this match is reached");
-        }
         boolean back = eventRepository.findByMatchIdOrderByEventMinuteAsc(matchId).stream()
                 .anyMatch(event -> event.getEventType() == EventType.SUB_OUT && event.getPlayer() != null && event.getPlayer().getId().equals(inId));
-        if (back) {
-            throw BusinessException.unprocessable("A substituted player cannot come back on");
+        String code = SubRules.check(minute, (int) used, settingsService.current().getMaxSubstitutes(), back,
+                leaving.getPosition() == Position.GOALKEEPER, entering.getPosition() == Position.GOALKEEPER, reason != null && reason.startsWith("override:"));
+        if (code != null) {
+            throw BusinessException.unprocessable("This substitution is not allowed", code);
         }
         MatchEvent out = new MatchEvent();
         out.setMatch(match);
         out.setEventMinute(minute);
         out.setEventType(EventType.SUB_OUT);
-        out.setPlayer(playerRepository.findByIdAndActiveTrue(outId).orElseThrow(() -> NotFoundException.of("Player", outId)));
+        out.setPlayer(leaving);
         out.setNote(reason);
         MatchEvent in = new MatchEvent();
         in.setMatch(match);
         in.setEventMinute(minute);
         in.setEventType(EventType.SUB_IN);
-        in.setPlayer(playerRepository.findByIdAndActiveTrue(inId).orElseThrow(() -> NotFoundException.of("Player", inId)));
+        in.setPlayer(entering);
         in.setRelatedPlayer(out.getPlayer());
         in.setNote(reason);
         eventRepository.save(out);
@@ -642,8 +701,15 @@ public class LineupCenterService {
     }
 
     private List<Map<String, Object>> squad(FootballMatch match, List<LineupSlot> slots, ClubSettings settings) {
-        Set<Long> injured = injuryRepository.findByStatusNot(InjuryStatus.CLEARED).stream()
-                .map(injury -> injury.getPlayer().getId()).collect(Collectors.toSet());
+        Set<Long> injured = new java.util.HashSet<>();
+        Set<Long> doubtful = new java.util.HashSet<>();
+        for (Injury injury : injuryRepository.findByStatusNot(InjuryStatus.CLEARED)) {
+            if (injury.getStatus() == InjuryStatus.INJURED) {
+                injured.add(injury.getPlayer().getId());
+            } else {
+                doubtful.add(injury.getPlayer().getId());
+            }
+        }
         Map<Long, Long> yellows = eventRepository.findByEventType(EventType.YELLOW_CARD).stream()
                 .filter(event -> event.getPlayer() != null && event.getMatch().getSeason().getId().equals(match.getSeason().getId()))
                 .collect(Collectors.groupingBy(event -> event.getPlayer().getId(), Collectors.counting()));
@@ -660,13 +726,16 @@ public class LineupCenterService {
                     row.put("position", player.getPosition().name());
                     row.put("positionLabel", player.getPosition().getLabel());
                     row.put("line", player.getLineName());
+                    row.put("lineCode", SquadRules.lineOf(player.getLineName(), player.getPosition()));
                     row.put("photoUrl", player.getPhotoUrl());
+                    row.put("cards", yellows.getOrDefault(player.getId(), 0L));
                     row.put("email", player.getEmail() != null && !player.getEmail().isBlank());
                     row.put("age", player.getDateOfBirth() == null ? null : Period.between(player.getDateOfBirth(), LocalDate.now(JpaConfig.KIGALI)).getYears());
                     String availability = "AVAILABLE";
                     if (player.getStatus() == PlayerStatus.INJURED || injured.contains(player.getId())) availability = "INJURED";
                     else if (player.getStatus() == PlayerStatus.SUSPENDED || yellows.getOrDefault(player.getId(), 0L) >= settings.getYellowSuspension()) availability = "SUSPENDED";
                     else if (player.getStatus() == PlayerStatus.LOANED || player.getStatus() == PlayerStatus.RELEASED || player.getStatus() == PlayerStatus.TRANSFERRED) availability = "UNAVAILABLE";
+                    else if (doubtful.contains(player.getId())) availability = "DOUBTFUL";
                     row.put("availability", availability);
                     LineupSlot slot = used.get(player.getId());
                     row.put("used", slot == null ? null : slot.getSelection().name());
@@ -687,44 +756,171 @@ public class LineupCenterService {
         boolean gkSlot = slots.stream().filter(slot -> slot.getSelection() == Selection.STARTING && "GK".equals(slot.getPositionSlot()))
                 .anyMatch(slot -> slot.getPlayer().getPosition() != Position.GOALKEEPER);
         if (gkSlot) {
-            throw BusinessException.unprocessable("The goalkeeper slot has to be a goalkeeper", "LINEUP_INCOMPLETE");
+            throw BusinessException.unprocessable("The goalkeeper slot has to be a goalkeeper", "MIN_GOALKEEPERS");
+        }
+    }
+
+    private Map<String, Object> memberView(LineupSquadMember member) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("playerId", member.getPlayer().getId());
+        row.put("line", member.getLineCode());
+        row.put("called", member.isCalled());
+        row.put("benchOrder", member.getBenchOrder());
+        row.put("reasonNotCalled", member.getReasonNotCalled());
+        row.put("overrideReason", member.getOverrideReason());
+        return row;
+    }
+
+    private Map<String, Object> ruleFor(FootballMatch match, ClubSettings settings) {
+        int size = settings.getLineupDefaultSquadSize() == 0 ? 18 : settings.getLineupDefaultSquadSize();
+        int maxBench = settings.getLineupMaxBench();
+        int minKeepers = 2;
+        var stored = competitionRuleRepository.findByCompetitionIgnoreCase(match.getCompetition() == null ? "" : match.getCompetition());
+        if (stored.isPresent()) {
+            size = stored.get().getSquadSize();
+            maxBench = stored.get().getMaxBench();
+            minKeepers = stored.get().getMinGoalkeepers();
+        } else if (settings.getSquadSizeByCompetition() != null && match.getCompetition() != null) {
+            try {
+                JsonNode node = objectMapper.readTree(settings.getSquadSizeByCompetition());
+                JsonNode row = node.get(match.getCompetition());
+                if (row != null && row.isNumber()) {
+                    size = row.intValue();
+                } else if (row != null && row.isObject()) {
+                    if (row.has("squadSize")) size = row.get("squadSize").intValue();
+                    if (row.has("maxBench")) maxBench = row.get("maxBench").intValue();
+                    if (row.has("minGoalkeepers")) minKeepers = row.get("minGoalkeepers").intValue();
+                }
+            } catch (Exception ignored) {
+                size = settings.getLineupDefaultSquadSize() == 0 ? 18 : settings.getLineupDefaultSquadSize();
+            }
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("competition", match.getCompetition());
+        body.put("squadSize", size);
+        body.put("maxBench", maxBench);
+        body.put("minGoalkeepers", minKeepers);
+        body.put("plan", SquadRules.recommended(size));
+        body.put("label", match.getCompetition() + ": up to " + size);
+        return body;
+    }
+
+    private Map<String, Integer> readPlan(String json) {
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<>() {
+            });
+        } catch (Exception ex) {
+            return null;
         }
     }
 
     private void squadSize(Long matchId, LineupVersion lineup) {
         ClubSettings settings = settingsService.current();
+        List<LineupSquadMember> members = memberRepository.findByLineupIdOrderByBenchOrderAsc(lineup.getId());
+        if (!members.isEmpty()) {
+            Map<String, Integer> selected = new LinkedHashMap<>();
+            SquadRules.LINES.forEach(line -> selected.put(line, 0));
+            for (LineupSquadMember member : members) {
+                if (member.isCalled()) {
+                    selected.merge(member.getLineCode(), 1, Integer::sum);
+                }
+            }
+            int size = lineup.getSquadSize() == null ? settings.getLineupDefaultSquadSize() : lineup.getSquadSize();
+            List<String> issues = SquadRules.squadIssues(size, readPlan(lineup.getSquadPlanJson()), selected, settings.getLineupMaxBench());
+            if (!issues.isEmpty()) {
+                throw BusinessException.unprocessable("The matchday squad does not match the chosen size", issues.get(0));
+            }
+            Set<Long> called = members.stream().filter(LineupSquadMember::isCalled).map(member -> member.getPlayer().getId()).collect(Collectors.toSet());
+            boolean outsider = slotRepository.findByLineupIdOrderBySortOrderAsc(lineup.getId()).stream().anyMatch(slot -> !called.contains(slot.getPlayer().getId()));
+            if (outsider) {
+                throw BusinessException.unprocessable("Only called-up players can be in the lineup", "PLAYER_NOT_CALLED_UP");
+            }
+            return;
+        }
         long called = convocationRepository.findByMatchId(matchId).stream().filter(Convocation::isCalled).count();
         if (called == 0) {
             called = slotRepository.findByLineupIdOrderBySortOrderAsc(lineup.getId()).size();
         }
         if (called < settings.getLineupMinSquad() || called > settings.getLineupMaxSquad()) {
-            throw BusinessException.unprocessable("The called-up squad must be between " + settings.getLineupMinSquad() + " and " + settings.getLineupMaxSquad(), "LINEUP_INCOMPLETE");
+            throw BusinessException.unprocessable("The called-up squad must be between " + settings.getLineupMinSquad() + " and " + settings.getLineupMaxSquad(), "SQUAD_SIZE_INVALID");
         }
+    }
+
+    public Map<String, Object> historyPage(Long matchId, String type, int page, int size, String status, String user) {
+        List<Map<String, Object>> rows = history(matchId).stream()
+                .filter(row -> type == null || type.isBlank() || "all".equals(type) || type.equals(row.get("kind")))
+                .filter(row -> status == null || status.isBlank() || "Any".equals(status) || status.equals(String.valueOf(row.get("status"))) || status.equals(String.valueOf(row.get("action"))))
+                .filter(row -> user == null || user.isBlank() || String.valueOf(row.get("by")).toLowerCase(Locale.ROOT).contains(user.toLowerCase(Locale.ROOT)))
+                .toList();
+        int safe = Math.max(size, 1);
+        int from = Math.max(page, 0) * safe;
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("total", rows.size());
+        body.put("page", Math.max(page, 0));
+        body.put("rows", from >= rows.size() ? List.of() : rows.subList(from, Math.min(rows.size(), from + safe)));
+        return body;
+    }
+
+    public Map<String, Object> versionDiff(Long matchId, int left, int right) {
+        Map<String, Object> before = history(matchId).stream().filter(row -> "version".equals(row.get("kind")) && Integer.valueOf(left).equals(row.get("revision"))).findFirst().orElseThrow(() -> NotFoundException.of("Lineup", left));
+        Map<String, Object> after = history(matchId).stream().filter(row -> "version".equals(row.get("kind")) && Integer.valueOf(right).equals(row.get("revision"))).findFirst().orElseThrow(() -> NotFoundException.of("Lineup", right));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("before", before);
+        body.put("after", after);
+        body.put("messageKey", "lineup.history.diff");
+        return body;
     }
 
     private List<Map<String, Object>> history(Long matchId) {
         List<Map<String, Object>> rows = new ArrayList<>();
-        for (LineupVersion version : lineupRepository.findByMatchIdOrderByRevisionDesc(matchId)) {
+        List<LineupVersion> versions = lineupRepository.findByMatchIdOrderByRevisionDesc(matchId);
+        for (int index = 0; index < versions.size(); index++) {
+            LineupVersion version = versions.get(index);
+            LineupVersion older = index + 1 < versions.size() ? versions.get(index + 1) : null;
             Map<String, Object> row = new LinkedHashMap<>();
+            row.put("kind", "version");
             row.put("revision", version.getRevision());
             row.put("status", version.getStatus());
             row.put("formation", version.getFormation());
+            row.put("squadSize", version.getSquadSize());
             row.put("at", version.getUpdatedAt());
             row.put("by", version.getUpdatedBy());
             row.put("comment", version.getReviewComment());
-            row.put("players", slotRepository.findByLineupIdOrderBySortOrderAsc(version.getId()).stream().map(slot -> {
+            row.put("current", index == 0);
+            List<Map<String, Object>> players = slotRepository.findByLineupIdOrderBySortOrderAsc(version.getId()).stream().map(slot -> {
                 Map<String, Object> player = new LinkedHashMap<>();
                 player.put("playerId", slot.getPlayer().getId());
                 player.put("name", slot.getPlayer().getKnownAs());
+                player.put("photoUrl", slot.getPlayer().getPhotoUrl());
                 player.put("slot", slot.getPositionSlot());
+                player.put("x", slot.getCoordX());
+                player.put("y", slot.getCoordY());
                 player.put("selection", slot.getSelection().name());
                 return player;
-            }).toList());
+            }).toList();
+            row.put("players", players);
+            row.put("diff", older == null ? Map.of("added", List.of(), "removed", List.of(), "moved", List.of()) : playerDiff(players, slotRepository.findByLineupIdOrderBySortOrderAsc(older.getId())));
+            if (older != null && older.getFormation() != null && !older.getFormation().equals(version.getFormation())) {
+                row.put("formationFrom", older.getFormation());
+            }
+            if (older != null && older.getSquadSize() != null && !older.getSquadSize().equals(version.getSquadSize())) {
+                row.put("squadFrom", older.getSquadSize());
+            }
             rows.add(row);
         }
+        Set<String> seen = new HashSet<>();
         for (LineupTransition transition : transitionRepository.findByMatchIdOrderByCreatedAtDesc(matchId)) {
+            String key = transition.getAction() + ":" + transition.getRevision();
+            if (!seen.add(key)) {
+                continue;
+            }
             Map<String, Object> row = new LinkedHashMap<>();
+            row.put("kind", "activity");
             row.put("action", transition.getAction());
+            row.put("messageKey", "lineup.history." + transition.getAction());
             row.put("revision", transition.getRevision());
             row.put("at", transition.getCreatedAt());
             row.put("by", transition.getActor());
@@ -732,6 +928,42 @@ public class LineupCenterService {
             rows.add(row);
         }
         return rows;
+    }
+
+    private Map<String, Object> playerDiff(List<Map<String, Object>> current, List<LineupSlot> previousSlots) {
+        Map<Long, LineupSlot> before = new LinkedHashMap<>();
+        previousSlots.forEach(slot -> before.put(slot.getPlayer().getId(), slot));
+        List<Map<String, Object>> added = new ArrayList<>();
+        List<Map<String, Object>> removed = new ArrayList<>();
+        List<Map<String, Object>> moved = new ArrayList<>();
+        Set<Long> now = new HashSet<>();
+        for (Map<String, Object> player : current) {
+            Long id = ((Number) player.get("playerId")).longValue();
+            now.add(id);
+            LineupSlot old = before.get(id);
+            if (old == null) {
+                added.add(player);
+            } else if (old.getPositionSlot() != null && !old.getPositionSlot().equals(player.get("slot"))) {
+                Map<String, Object> move = new LinkedHashMap<>(player);
+                move.put("from", old.getPositionSlot());
+                move.put("to", player.get("slot"));
+                moved.add(move);
+            }
+        }
+        before.forEach((id, slot) -> {
+            if (!now.contains(id)) {
+                Map<String, Object> player = new LinkedHashMap<>();
+                player.put("playerId", id);
+                player.put("name", slot.getPlayer().getKnownAs());
+                player.put("photoUrl", slot.getPlayer().getPhotoUrl());
+                removed.add(player);
+            }
+        });
+        Map<String, Object> diff = new LinkedHashMap<>();
+        diff.put("added", added);
+        diff.put("removed", removed);
+        diff.put("moved", moved);
+        return diff;
     }
 
     private Map<String, Object> permissions(LineupVersion lineup, FootballMatch match) {
@@ -752,6 +984,7 @@ public class LineupCenterService {
         body.put("graphic", visible(status) && (executive || head || ClubAccess.publishedOnly() || SecurityUtils.hasRole("SOCIAL_MEDIA_MANAGER") || SecurityUtils.hasRole("MARKETING_MANAGER")));
         body.put("medical", SecurityUtils.hasRole("DOCTOR") || executive);
         body.put("suggestGk", SecurityUtils.hasRole("GOALKEEPER_COACH") || head);
+        body.put("revise", (coach || executive) && !locked(status));
         return body;
     }
 
@@ -769,6 +1002,7 @@ public class LineupCenterService {
         body.put("status", match.getStatus());
         body.put("goalsFor", match.getGoalsFor());
         body.put("goalsAgainst", match.getGoalsAgainst());
+        body.put("squadSizeOverride", match.getSquadSizeOverride());
         return body;
     }
 
@@ -794,6 +1028,8 @@ public class LineupCenterService {
         body.put("message", lineup.getCallupMessage());
         body.put("ratingsClosed", lineup.isRatingsClosed());
         body.put("gkSuggestionId", lineup.getGkSuggestionId());
+        body.put("squadSize", lineup.getSquadSize());
+        body.put("squadPlan", readPlan(lineup.getSquadPlanJson()));
         return body;
     }
 
@@ -915,7 +1151,7 @@ public class LineupCenterService {
         return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
-    public record CallWrite(List<CallRow> players, Instant meetingAt, String meetingPlace, String kitNote, String travelNote, String message) {
+    public record CallWrite(List<CallRow> players, Instant meetingAt, String meetingPlace, String kitNote, String travelNote, String message, Boolean notifyStaff) {
     }
 
     public record CallRow(Long playerId, boolean called, String reason, String reasonNote) {

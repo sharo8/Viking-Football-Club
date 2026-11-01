@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface StaffMemberRepository extends JpaRepository<StaffMember, Long> {
     List<StaffMember> findByActiveTrueOrderByFullNameAsc();
     Optional<StaffMember> findByIdAndActiveTrue(Long id);
+
+    Optional<StaffMember> findFirstByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 }

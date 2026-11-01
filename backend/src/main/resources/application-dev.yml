@@ -1,4 +1,7 @@
 spring:
+  mail:
+    username: ${MAIL_SMTP_USERNAME:internshipsolvitafrica@gmail.com}
+    password: ${MAIL_SMTP_PASSWORD:}
   datasource:
     url: jdbc:h2:file:./data/vikingfc;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;CASE_INSENSITIVE_IDENTIFIERS=TRUE
     driver-class-name: org.h2.Driver
@@ -14,4 +17,6 @@ spring:
     show-sql: false
 
 app:
-  bootstrap-derived-data: true
+  bootstrap-derived-data: false
+  cors:
+    origins: ${CORS_ORIGINS:http://localhost:*,http://127.0.0.1:*}

@@ -10,6 +10,8 @@ public interface TeamCaptainRepository extends JpaRepository<TeamCaptain, Long> 
     List<TeamCaptain> findBySeasonIdAndEndedAtIsNullOrderByRankAsc(Long seasonId);
     Optional<TeamCaptain> findBySeasonIdAndRankAndEndedAtIsNull(Long seasonId, CaptainRank rank);
     Optional<TeamCaptain> findBySeasonIdAndPlayerIdAndEndedAtIsNull(Long seasonId, Long playerId);
+
+    List<TeamCaptain> findByPlayerIdAndEndedAtIsNull(Long playerId);
     Optional<TeamCaptain> findBySeasonIdAndRank(Long seasonId, CaptainRank rank);
     Optional<TeamCaptain> findBySeasonIdAndPlayerId(Long seasonId, Long playerId);
     long countBySeasonId(Long seasonId);

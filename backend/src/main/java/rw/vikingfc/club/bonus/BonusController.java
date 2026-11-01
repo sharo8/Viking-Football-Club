@@ -36,6 +36,11 @@ public class BonusController {
         return ApiResponse.ok("Bonus rules", bonusService.rules());
     }
 
+    @GetMapping("/by-player")
+    public ApiResponse<List<Map<String, Object>>> byPlayer() {
+        return ApiResponse.ok("Bonuses by player", bonusService.byPlayer());
+    }
+
     @PostMapping("/rules")
     public ApiResponse<Map<String, Object>> rule(@RequestBody Map<String, Object> body) {
         Long playerId = body.get("playerId") == null ? null : ((Number) body.get("playerId")).longValue();

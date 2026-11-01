@@ -26,6 +26,15 @@ class FineGenerationTest {
         assertEquals(Money.of(2000), late.amount());
         assertFalse(FinePolicy.matchLate(10, false, 15, Money.of(2000)).fine());
         assertTrue(FinePolicy.matchLate(20, false, 15, Money.of(2000)).fine());
+        assertFalse(FinePolicy.training(AttendanceMark.I, 40, false, 15, Money.of(2000), Money.of(4000)).fine());
+        assertFalse(FinePolicy.training(AttendanceMark.N, 0, false, 15, Money.of(2000), Money.of(4000)).fine());
+        assertFalse(FinePolicy.matchMark(AttendanceMark.E, 30, true, 15, Money.of(5000), Money.of(5000)).fine());
+        assertFalse(FinePolicy.matchMark(AttendanceMark.I, 0, false, 15, Money.of(5000), Money.of(5000)).fine());
+        assertFalse(FinePolicy.matchMark(AttendanceMark.N, 0, false, 15, Money.of(5000), Money.of(5000)).fine());
+        assertFalse(FinePolicy.matchMark(AttendanceMark.L, 15, false, 15, Money.of(5000), Money.of(5000)).fine());
+        assertEquals(Money.of(5000), FinePolicy.matchMark(AttendanceMark.L, 16, false, 15, Money.of(5000), Money.of(5000)).amount());
+        assertEquals(Money.of(5000), FinePolicy.matchMark(AttendanceMark.A, 0, false, 15, Money.of(5000), Money.of(5000)).amount());
+        assertEquals(FineType.MATCH_ABSENCE, FinePolicy.matchMark(AttendanceMark.A, 0, false, 15, Money.of(5000), Money.of(5000)).type());
     }
 
     private static java.math.BigDecimal BigDecimals(int count) {

@@ -34,6 +34,15 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 40)
     private Role role;
 
+    @Column(name = "role_code", length = 40)
+    private String roleCode;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
+    @Column(name = "photo_url", length = 400)
+    private String photoUrl;
+
     @Column(length = 40)
     private String phone;
 

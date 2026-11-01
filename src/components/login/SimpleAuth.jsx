@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { API_URL, IconEye, LogoEmblem } from "./Login";
+import { API_URL, IconEye, LogoEmblem, OtpFields } from "./Login";
 import { readSession, writeSession } from "./session";
 import { api } from "@/services/api";
 import { useLocale } from "@/components/providers/LocaleProvider";
@@ -157,10 +157,7 @@ export function ForgotPassword() {
           <>
           <div className="field">
             <label htmlFor="reset-code">6-digit code</label>
-            <div className="control">
-              <input id="reset-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} />
-              <span className="underline" aria-hidden="true" />
-            </div>
+            <OtpFields id="reset-code" value={code} onChange={setCode} />
           </div>
           <div className="field">
             <label htmlFor="new-password">New password</label>

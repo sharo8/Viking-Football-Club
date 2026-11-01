@@ -6,11 +6,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import rw.vikingfc.club.common.api.ApiResponse;
 import rw.vikingfc.club.common.exception.BusinessException;
 
@@ -26,9 +31,22 @@ public class AuthController {
     @PostMapping("/login")
     @SecurityRequirements
     @Operation(summary = "Login with email and password")
-    public ApiResponse<AuthDtos.TokenResponse> login(@Valid @RequestBody AuthDtos.LoginRequest request,
+    public ApiResponse<AuthDtos.LoginResponse> login(@Valid @RequestBody AuthDtos.LoginRequest request,
                                                       HttpServletRequest http) {
         return ApiResponse.ok("Logged in", authService.login(request, clientIp(http)));
+    }
+
+    @PostMapping("/otp/verify-login")
+    @SecurityRequirements
+    public ApiResponse<AuthDtos.LoginResponse> verifyLogin(@RequestBody java.util.Map<String, String> body) {
+        return ApiResponse.ok("Logged in", authService.verifyLoginOtp(body.get("challengeId"), body.get("code")));
+    }
+
+    @PostMapping("/otp/resend-login")
+    @SecurityRequirements
+    public ApiResponse<Void> resendLogin(@RequestBody java.util.Map<String, String> body, HttpServletRequest http) {
+        authService.resendLoginOtp(body.get("challengeId"), clientIp(http));
+        return ApiResponse.ok("A new code is on its way.", null);
     }
 
     @PostMapping("/refresh")
@@ -96,6 +114,24 @@ public class AuthController {
     @Operation(summary = "Current user")
     public ApiResponse<AuthDtos.Me> me() {
         return ApiResponse.ok("Current user", authService.me());
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "Change the signed-in user's email and phone")
+    public ApiResponse<java.util.Map<String, Object>> updateProfile(@RequestBody java.util.Map<String, String> body) {
+        return ApiResponse.ok("Profile updated", authService.updateProfile(body.get("email"), body.containsKey("phone") ? body.get("phone") : null));
+    }
+
+    @PostMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Store the signed-in user's photo")
+    public ApiResponse<java.util.Map<String, Object>> photo(@RequestParam("file") MultipartFile file) {
+        return ApiResponse.ok("Photo saved", authService.updatePhoto(file));
+    }
+
+    @DeleteMapping("/me/photo")
+    @Operation(summary = "Remove the signed-in user's photo")
+    public ApiResponse<java.util.Map<String, Object>> clearPhoto() {
+        return ApiResponse.ok("Photo removed", authService.clearPhoto());
     }
 
     private String clientIp(HttpServletRequest request) {

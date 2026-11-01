@@ -15,10 +15,23 @@ public class AuditService {
     private final ObjectMapper objectMapper;
 
     public void record(String action, String entity, Object id, Object before, Object after, String ip) {
-        AuditLog log = new AuditLog();
-        log.setActorEmail(SecurityUtils.email());
         UserPrincipal principal = SecurityUtils.principal();
-        log.setActorRole(principal == null ? null : principal.getRole().name());
+        recordFor(
+                SecurityUtils.email(),
+                principal == null ? null : principal.getFullName(),
+                principal == null ? null : principal.getRole().name(),
+                action, entity, id, before, after, ip);
+    }
+
+    public void recordFor(String email, String name, String role, String action, String entity, Object id, Object before, Object after) {
+        recordFor(email, name, role, action, entity, id, before, after, null);
+    }
+
+    public void recordFor(String email, String name, String role, String action, String entity, Object id, Object before, Object after, String ip) {
+        AuditLog log = new AuditLog();
+        log.setActorEmail(email);
+        log.setActorName(name);
+        log.setActorRole(role);
         log.setAction(action);
         log.setEntityName(entity);
         log.setEntityId(id == null ? null : String.valueOf(id));

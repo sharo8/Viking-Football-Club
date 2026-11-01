@@ -1,0 +1,18 @@
+.people-office { display: grid; gap: 16px; padding-top: 8px; }
+.people-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.people-head h1 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 28px; }
+.people-head p { margin: 4px 0 0; color: var(--muted, #8a8580); }
+.people-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.people-actions input, .people-office select, .people-office input { height: 40px; border-radius: 10px; border: 1px solid var(--line, #2a2a2a); background: transparent; color: inherit; padding: 0 12px; }
+.people-table-wrap { overflow: auto; border: 1px solid var(--line, #2a2a2a); border-radius: 16px; }
+.people-table { width: 100%; border-collapse: collapse; }
+.people-table th, .people-table td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--line, #2a2a2a); white-space: nowrap; }
+.people-table tbody tr:hover { background: color-mix(in srgb, #a3283a 8%, transparent); }
+.people-empty, .people-error { margin: 0; }
+.people-error { color: #a3283a; }
+.people-cleanup { padding: 12px 16px; border-radius: 12px; border: 1px dashed var(--line, #2a2a2a); }
+.people-check { display: flex; gap: 8px; align-items: center; }
+@media (max-width: 720px) {
+  .people-head { align-items: stretch; }
+  .people-actions { width: 100%; }
+}

@@ -8,6 +8,10 @@ import java.util.Optional;
 
 public interface PlayerContractRepository extends JpaRepository<PlayerContract, Long> {
     Optional<PlayerContract> findByPlayerIdAndSeasonIdAndActiveTrue(Long playerId, Long seasonId);
+
+    List<PlayerContract> findByPlayerIdAndActiveTrue(Long playerId);
+
+    List<PlayerContract> findByPlayerIdOrderByStartDateDesc(Long playerId);
     List<PlayerContract> findBySeasonIdAndActiveTrue(Long seasonId);
     List<PlayerContract> findByActiveTrueAndContractStatusNotAndEndDateLessThanEqual(ContractStatus status, LocalDate end);
 }

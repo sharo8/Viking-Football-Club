@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, getData } from "@/services/api";
-import { Avatar, Button, Field, Modal, TextArea, TextInput } from "@/ui/kit";
+import { Avatar, Button, Field, Modal, SelectInput, TextArea, TextInput } from "@/ui/kit";
 import { POSITION, RANKS, label, money } from "./playersCopy";
 
 const TEMPLATES = [
@@ -154,27 +154,39 @@ export function MessageModal({ player, copy, locale, userEmail, onClose, onSent 
   );
 }
 
-export function ConfirmModal({ row, copy, executive, onClose, onArchive }) {
+export function ConfirmModal({ row, copy, onClose, onArchive }) {
   const [error, setError] = useState("");
-  async function run(hard) {
+  const [exitReason, setExitReason] = useState("RELEASED");
+  const [exitDate, setExitDate] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState("");
+  async function run() {
     try {
-      await onArchive(row, hard);
+      await onArchive(row, { exitReason, exitDate, note });
     } catch (err) {
-      setError(err.message);
+      setError(err?.code === "LINEUP_PUBLISHED" ? copy.lineupBlocked : (err.message || copy.retry));
     }
   }
   return (
-    <Modal size="sm" title={row.fullName} subtitle={copy.archive} onClose={onClose} closeLabel={copy.close}
+    <Modal size="sm" title={`${copy.moveFormer} — ${row.fullName}`} onClose={onClose} closeLabel={copy.close}
       footer={(
-        <>
-          <Button variant="ghost" onClick={onClose}>{copy.cancel}</Button>
-          <div className="vfc-foot-right">
-            <Button variant="primary" onClick={() => run(false)}>{copy.archive}</Button>
-            {executive ? <Button variant="danger" onClick={() => run(true)}>{copy.erase}</Button> : null}
-          </div>
-        </>
+        <div className="vfc-foot-right pair-actions">
+          <Button onClick={onClose}>{copy.cancel}</Button>
+          <Button variant="danger" disabled={!exitReason} onClick={run}>{copy.moveFormer}</Button>
+        </div>
       )}>
-      {error ? <p className="vfc-error">{error}</p> : <p>{copy.archive} {row.fullName}.</p>}
+      <Field label={copy.exitReason} required>
+        <SelectInput value={exitReason} onChange={(event) => setExitReason(event.target.value)}>
+          <option value="TRANSFERRED">{copy.exitTransferred}</option>
+          <option value="RELEASED">{copy.exitReleased}</option>
+          <option value="RETIRED">{copy.exitRetired}</option>
+          <option value="CONTRACT_ENDED">{copy.exitContract}</option>
+          <option value="LOAN_ENDED">{copy.exitLoan}</option>
+          <option value="OTHER">{copy.exitOther}</option>
+        </SelectInput>
+      </Field>
+      <Field label={copy.exitDate}><TextInput type="date" value={exitDate} onChange={(event) => setExitDate(event.target.value)} /></Field>
+      <Field label={copy.exitNote}><TextArea value={note} onChange={(event) => setNote(event.target.value)} /></Field>
+      {error ? <p className="vfc-error">{error}</p> : null}
     </Modal>
   );
 }

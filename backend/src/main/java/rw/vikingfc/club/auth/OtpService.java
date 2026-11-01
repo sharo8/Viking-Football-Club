@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -32,6 +33,7 @@ public class OtpService {
     public static final String PASSWORD_RESET = "PASSWORD_RESET";
     public static final String LOGIN_2FA = "LOGIN_2FA";
     public static final String EMAIL_VERIFY = "EMAIL_VERIFY";
+    public static final String STEP_UP = "STEP_UP";
 
     private final OtpCodeRepository otpCodeRepository;
     private final UserRepository userRepository;
@@ -80,12 +82,68 @@ public class OtpService {
             case "rw" -> "Kode yawe ya Viking FC";
             default -> "Your Viking FC code";
         };
-        String html = mailService.layout(subject, "<p style=\"font-size:28px;letter-spacing:.3em;font-weight:700\">" + code + "</p><p>This code expires in 5 minutes.</p>");
+        String note = switch (language) {
+            case "fr" -> "Ce code expire dans 5 minutes. Si vous n'avez pas demandé à vous connecter, ignorez ce message.";
+            case "rw" -> "Iyi kode irangira mu minota 5. Niba utabisabwe kwinjira, wirengagize ubu butumwa.";
+            default -> "This code expires in 5 minutes. If you did not try to sign in, ignore this message.";
+        };
+        StringBuilder cells = new StringBuilder();
+        cells.append("<table role=\"presentation\" align=\"center\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:4px auto 18px;\"><tr>");
+        for (int i = 0; i < code.length(); i++) {
+            if (i > 0) {
+                cells.append("<td style=\"width:8px;font-size:0;\">&nbsp;</td>");
+            }
+            cells.append("<td align=\"center\" width=\"48\" height=\"58\" style=\"width:48px;height:58px;background:#f6f7f8;border:1px solid #ececef;border-bottom:3px solid #a3283a;border-radius:12px;font-family:Segoe UI,Arial,sans-serif;font-size:28px;font-weight:700;color:#111111;\">")
+                    .append(code.charAt(i))
+                    .append("</td>");
+        }
+        cells.append("</tr></table>");
+        String html = mailService.layout(subject, cells + "<p style=\"margin:0;text-align:center;color:#5c6370;font-size:14px;\">" + note + "</p>");
         var queued = mailService.enqueue(user.getEmail(), subject, html, "otp", language, "OTP", purpose);
         mailService.dispatch(queued.getId());
         if (Arrays.asList(environment.getActiveProfiles()).contains("dev")) {
             log.warn("DEV OTP {} for {} purpose {}", code, user.getEmail(), purpose);
         }
+    }
+
+    public String beginLogin(User user, String ip) {
+        request(user.getEmail(), LOGIN_2FA, ip);
+        OtpCode row = otpCodeRepository.findFirstByUserIdAndPurposeAndUsedAtIsNullOrderByCreatedAtDesc(user.getId(), LOGIN_2FA)
+                .orElseThrow(() -> BusinessException.badRequest("The code could not be sent", "OTP_SEND_FAILED"));
+        String challenge = UUID.randomUUID().toString();
+        row.setChallengeId(challenge);
+        return challenge;
+    }
+
+    public User consumeLogin(String challengeId, String code) {
+        OtpCode row = otpCodeRepository.findByChallengeId(challengeId)
+                .orElseThrow(() -> BusinessException.badRequest("That code is not valid", "OTP_INVALID"));
+        if (row.getUsedAt() != null) {
+            throw BusinessException.badRequest("That code is not valid", "OTP_INVALID");
+        }
+        User user = row.getUser();
+        Instant now = Instant.now(clock);
+        if (row.getExpiresAt().isBefore(now) || row.getAttempts() >= row.getMaxAttempts()) {
+            throw BusinessException.badRequest("That code has expired", "OTP_EXPIRED");
+        }
+        if (!MessageDigest.isEqual(row.getCodeHash().getBytes(StandardCharsets.UTF_8), hash(user.getId(), LOGIN_2FA, code).getBytes(StandardCharsets.UTF_8))) {
+            row.setAttempts(row.getAttempts() + 1);
+            if (row.getAttempts() >= row.getMaxAttempts()) {
+                row.setUsedAt(now);
+            }
+            throw BusinessException.badRequest("That code is not valid", "OTP_INVALID");
+        }
+        row.setUsedAt(now);
+        return user;
+    }
+
+    public void resendLogin(String challengeId, String ip) {
+        OtpCode previous = otpCodeRepository.findByChallengeId(challengeId)
+                .orElseThrow(() -> BusinessException.badRequest("That code is not valid", "OTP_INVALID"));
+        String email = previous.getUser().getEmail();
+        request(email, LOGIN_2FA, ip);
+        otpCodeRepository.findFirstByUserIdAndPurposeAndUsedAtIsNullOrderByCreatedAtDesc(previous.getUser().getId(), LOGIN_2FA)
+                .ifPresent(fresh -> fresh.setChallengeId(challengeId));
     }
 
     public void verify(String email, String purpose, String code) {

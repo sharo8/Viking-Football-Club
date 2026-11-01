@@ -8,12 +8,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rw.vikingfc.club.audit.AuditService;
+import rw.vikingfc.club.common.RwandaPhone;
 import rw.vikingfc.club.common.exception.BusinessException;
 import rw.vikingfc.club.common.exception.NotFoundException;
 import rw.vikingfc.club.common.util.SecurityUtils;
 import rw.vikingfc.club.config.AppProperties;
 import rw.vikingfc.club.security.JwtService;
 import rw.vikingfc.club.security.LoginRateLimiter;
+import rw.vikingfc.club.user.ClubRoleRepository;
+import rw.vikingfc.club.user.RolePolicy;
 import rw.vikingfc.club.user.User;
 import rw.vikingfc.club.user.UserRepository;
 import rw.vikingfc.club.user.UserService;
@@ -42,32 +45,78 @@ public class AuthService {
     private final AppProperties properties;
     private final AuditService auditService;
     private final Clock clock;
+    private final OtpService otpService;
+    private final ClubRoleRepository clubRoleRepository;
+    private final UserService userService;
+    private final LoginGuard loginGuard;
     private final SecureRandom random = new SecureRandom();
 
-    public AuthDtos.TokenResponse login(AuthDtos.LoginRequest request, String ip) {
+    public AuthDtos.LoginResponse login(AuthDtos.LoginRequest request, String ip) {
         loginRateLimiter.check(ip == null ? "unknown" : ip);
-        User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(request.email().trim())
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        String email = request.email() == null ? "" : request.email().trim().toLowerCase(java.util.Locale.ROOT);
+        User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email).orElse(null);
+        if (user == null) {
+            log.warn("Login rejected for {}: USER_NOT_FOUND", email);
+            throw new BadCredentialsException("Invalid email or password");
+        }
         if (!user.isActive()) {
-            throw new BadCredentialsException("This account is disabled");
+            log.warn("Login rejected for {}: SUSPENDED", user.getEmail());
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "This account is inactive. Contact the administration to activate it.",
+                    "ACCOUNT_INACTIVE");
         }
         Instant now = Instant.now(clock);
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(now)) {
+            long minutes = Math.max(1, ChronoUnit.MINUTES.between(now, user.getLockedUntil()));
+            log.warn("Login rejected for {}: LOCKED for {} minutes", user.getEmail(), minutes);
             throw new BusinessException(HttpStatus.LOCKED,
-                    "Account locked after too many failed attempts. Try again in 15 minutes.");
+                    "This account is locked. Try again in " + minutes + " minutes.",
+                    "ACCOUNT_LOCKED");
         }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            int attempts = user.getFailedAttempts() + 1;
-            user.setFailedAttempts(attempts);
-            if (attempts >= properties.security().maxFailedAttempts()) {
-                user.setLockedUntil(now.plus(properties.security().lockMinutes(), ChronoUnit.MINUTES));
-                user.setFailedAttempts(0);
-            }
+            loginGuard.recordFailure(user.getId());
             throw new BadCredentialsException("Invalid email or password");
         }
         user.setFailedAttempts(0);
         user.setLockedUntil(null);
-        return issue(user);
+        String code = user.getRoleCode() == null || user.getRoleCode().isBlank() ? user.getRole().name() : user.getRoleCode();
+        if (!user.isMustChangePassword() && requiresOtp(code)) {
+            String challenge = otpService.beginLogin(user, ip);
+            auditService.recordFor(user.getEmail(), user.getFullName(), code, "LOGIN_OTP_SENT", "User", user.getId(), null, null);
+            return AuthDtos.LoginResponse.challenge(challenge, mask(user.getEmail()));
+        }
+        user.setLastLoginAt(now);
+        auditService.recordFor(user.getEmail(), user.getFullName(), code, "LOGIN", "User", user.getId(), null, null);
+        return AuthDtos.LoginResponse.tokens(issue(user));
+    }
+
+    public AuthDtos.LoginResponse verifyLoginOtp(String challengeId, String code) {
+        User user = otpService.consumeLogin(challengeId, code == null ? "" : code.trim());
+        user.setLastLoginAt(Instant.now(clock));
+        auditService.recordFor(user.getEmail(), user.getFullName(), user.getRole().name(), "LOGIN_OTP_OK", "User", user.getId(), null, null);
+        return AuthDtos.LoginResponse.tokens(issue(user));
+    }
+
+    public void resendLoginOtp(String challengeId, String ip) {
+        otpService.resendLogin(challengeId, ip);
+    }
+
+    private boolean requiresOtp(String code) {
+        if ("PLAYER".equals(code)) {
+            return false;
+        }
+        if (RolePolicy.executive(code)) {
+            return true;
+        }
+        return clubRoleRepository.findByCode(code).map(row -> row.isOtpRequired()).orElse(RolePolicy.otpRequired(code));
+    }
+
+    private static String mask(String email) {
+        int at = email.indexOf('@');
+        if (at <= 1) {
+            return "***";
+        }
+        return email.charAt(0) + "***" + email.substring(at);
     }
 
     public AuthDtos.TokenResponse refresh(String rawRefreshToken) {
@@ -78,7 +127,9 @@ public class AuthService {
         }
         User user = current.getUser();
         if (!user.isActive()) {
-            throw new BadCredentialsException("This account is disabled");
+            throw new BusinessException(HttpStatus.FORBIDDEN,
+                    "This account is inactive. Contact the administration to activate it.",
+                    "ACCOUNT_INACTIVE");
         }
         current.setRevoked(true);
         AuthDtos.TokenResponse issued = issue(user);
@@ -162,6 +213,74 @@ public class AuthService {
         refreshTokenRepository.revokeAllForUser(user.getId());
     }
 
+    public java.util.Map<String, Object> updateProfile(String rawEmail, String rawPhone) {
+        User user = currentUser();
+        if (rawEmail != null) {
+            if (!rawEmail.trim().matches("(?i)^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+                throw BusinessException.badRequest("Enter a valid email address.", "EMAIL_INVALID");
+            }
+            String email = rawEmail.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!email.equalsIgnoreCase(user.getEmail())) {
+                userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email).ifPresent(other -> {
+                    throw BusinessException.conflict("That email is already used.", "EMAIL_TAKEN", null);
+                });
+                String previous = user.getEmail();
+                user.setEmail(email);
+                auditService.record("EMAIL_UPDATE", "User", user.getId(), previous, email, null);
+            }
+        }
+        if (rawPhone != null) {
+            String phone = rawPhone.trim();
+            if (phone.isEmpty()) {
+                String previous = user.getPhone();
+                user.setPhone(null);
+                if (previous != null && !previous.isBlank()) {
+                    auditService.record("PHONE_UPDATE", "User", user.getId(), previous, null, null);
+                }
+            } else {
+                RwandaPhone.require(phone);
+                phone = RwandaPhone.normalize(phone);
+                userRepository.findFirstByPhoneAndDeletedAtIsNull(phone).ifPresent(other -> {
+                    if (!other.getId().equals(user.getId())) {
+                        throw BusinessException.conflict("That phone number is already used.", "PHONE_TAKEN", null);
+                    }
+                });
+                String previous = user.getPhone();
+                user.setPhone(phone);
+                if (previous == null || !previous.equals(phone)) {
+                    auditService.record("PHONE_UPDATE", "User", user.getId(), previous, phone, null);
+                }
+            }
+        }
+        return profileBody(user);
+    }
+
+    public java.util.Map<String, Object> updatePhoto(org.springframework.web.multipart.MultipartFile file) {
+        User user = currentUser();
+        String previous = user.getPhotoUrl();
+        userService.photo(user.getId(), file);
+        auditService.record("PHOTO_UPDATE", "User", user.getId(), previous, user.getPhotoUrl(), null);
+        return profileBody(user);
+    }
+
+    public java.util.Map<String, Object> clearPhoto() {
+        User user = currentUser();
+        String previous = user.getPhotoUrl();
+        userService.clearPhoto(user.getId());
+        auditService.record("PHOTO_UPDATE", "User", user.getId(), previous, null, null);
+        return profileBody(user);
+    }
+
+    private java.util.Map<String, Object> profileBody(User user) {
+        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("email", user.getEmail());
+        body.put("fullName", user.getFullName());
+        body.put("phone", user.getPhone());
+        body.put("photoUrl", user.getPhotoUrl());
+        body.put("accessToken", jwtService.accessToken(user));
+        return body;
+    }
+
     @Transactional(readOnly = true)
     public AuthDtos.Me me() {
         User user = currentUser();
@@ -171,7 +290,9 @@ public class AuthService {
                 user.getFullName(),
                 user.getRole(),
                 user.getRole().isExecutive(),
-                user.isMustChangePassword()
+                user.isMustChangePassword(),
+                user.getPhone(),
+                user.getPhotoUrl()
         );
     }
 

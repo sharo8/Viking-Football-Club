@@ -10,9 +10,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
 
+    Optional<User> findFirstByPhoneAndDeletedAtIsNull(String phone);
+
+    Optional<User> findByEmailIgnoreCase(String email);
+
     List<User> findByDeletedAtIsNullOrderByFullNameAsc();
 
     List<User> findByRoleInAndActiveTrueAndDeletedAtIsNull(Collection<Role> roles);
 
     long countByRoleInAndActiveTrueAndDeletedAtIsNull(Collection<Role> roles);
+
+    long countByRoleAndActiveTrueAndDeletedAtIsNull(Role role);
+
+    long countByRoleCodeAndDeletedAtIsNull(String roleCode);
+
+    List<User> findByRoleCodeAndDeletedAtIsNull(String roleCode);
 }

@@ -25,4 +25,8 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     List<Player> findByActiveTrueAndNewSigningTrueOrderBySignedOnDesc();
 
     long countByActiveTrue();
+
+    Optional<Player> findFirstByUserId(Long userId);
+
+    List<Player> findByStatusAndActiveTrueOrderByFullNameAsc(PlayerStatus status);
 }

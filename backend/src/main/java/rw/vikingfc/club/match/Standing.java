@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import rw.vikingfc.club.common.entity.BaseEntity;
+import rw.vikingfc.club.competition.Competition;
 import rw.vikingfc.club.season.Season;
 
 @Getter
@@ -39,4 +40,13 @@ public class Standing extends BaseEntity {
     private int goalsAgainst;
     @Column(nullable = false)
     private int points;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competition;
+    @Column(name = "form_text", length = 12)
+    private String formText;
+    @Column(nullable = false)
+    private boolean clubRow;
+    @Column(name = "source_kind", nullable = false, length = 20)
+    private String sourceKind = "COMPUTED";
 }

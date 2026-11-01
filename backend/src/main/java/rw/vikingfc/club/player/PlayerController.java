@@ -37,6 +37,8 @@ public class PlayerController {
     private final AnalyticsService analyticsService;
     private final BonusService bonusService;
     private final PlayerImportService importService;
+    private final PlayerAccountService playerAccountService;
+    private final rw.vikingfc.club.report.DirectorySheets sheets;
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
@@ -63,6 +65,12 @@ public class PlayerController {
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<Object> get(@PathVariable Long id) {
         return ApiResponse.ok("Player", playerService.get(id));
+    }
+
+    @PostMapping("/{id}/account")
+    @PreAuthorize("hasAnyRole('EXECUTIVE','HEAD_COACH','ASSISTANT_MANAGER')")
+    public ApiResponse<Map<String, Object>> account(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return ApiResponse.ok("Player login created", playerAccountService.open(id, body.get("email")));
     }
 
     @GetMapping("/{id}/stats")
@@ -194,12 +202,32 @@ public class PlayerController {
         return ApiResponse.ok(confirm ? "Import finished" : "Import preview", officeService.importCsv(new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8), confirm));
     }
 
-    @GetMapping(value = "/export", produces = "text/csv")
+    @GetMapping("/export")
     @PreAuthorize("isAuthenticated()")
-    public org.springframework.http.ResponseEntity<String> export() {
+    public org.springframework.http.ResponseEntity<?> export(@RequestParam(defaultValue = "csv") String format,
+                                                             @RequestParam(defaultValue = "en") String lang) {
+        if (!"pdf".equalsIgnoreCase(format) && !"xlsx".equalsIgnoreCase(format)) {
+            return org.springframework.http.ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=viking-fc-players.csv")
+                    .contentType(org.springframework.http.MediaType.parseMediaType("text/csv"))
+                    .body(officeService.exportCsv());
+        }
+        java.util.List<String> headers = "fr".equals(lang)
+                ? java.util.List.of("Nom", "Maillot", "Poste", "Nationalité", "Téléphone", "Statut")
+                : "rw".equals(lang)
+                ? java.util.List.of("Izina", "Umupira", "Umwanya", "Ubwenegihugu", "Telefoni", "Imiterere")
+                : java.util.List.of("Name", "Jersey", "Position", "Nationality", "Phone", "Status");
+        String title = "fr".equals(lang) ? "Joueurs" : "rw".equals(lang) ? "Abakinnyi" : "Players";
+        boolean pdf = "pdf".equalsIgnoreCase(format);
+        var principal = rw.vikingfc.club.common.util.SecurityUtils.principal();
+        String who = principal == null ? rw.vikingfc.club.common.util.SecurityUtils.email() : principal.getFullName();
+        byte[] body = pdf
+                ? sheets.pdf(title, who, headers, officeService.exportRows(), lang)
+                : sheets.excel(title, who, headers, officeService.exportRows());
         return org.springframework.http.ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=viking-fc-players.csv")
-                .body(officeService.exportCsv());
+                .header("Content-Disposition", "attachment; filename=viking-fc-players." + (pdf ? "pdf" : "xlsx"))
+                .contentType(pdf ? org.springframework.http.MediaType.APPLICATION_PDF : org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(body);
     }
 
     @GetMapping("/analytics")

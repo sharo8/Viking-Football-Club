@@ -18,7 +18,7 @@ public final class FinePolicy {
 
     public static Decision training(AttendanceMark mark, Integer minutesLate, boolean justified,
                                     int lateAfterMinutes, BigDecimal lateAmount, BigDecimal absenceAmount) {
-        if (mark == AttendanceMark.E || justified) {
+        if (mark == null || mark == AttendanceMark.E || mark == AttendanceMark.I || mark == AttendanceMark.N || justified) {
             return Decision.none();
         }
         if (mark == AttendanceMark.A) {
@@ -35,5 +35,19 @@ public final class FinePolicy {
             return Decision.none();
         }
         return new Decision(true, FineType.MATCH_LATE, Money.nz(amount));
+    }
+
+    public static Decision matchMark(AttendanceMark mark, Integer minutesLate, boolean justified,
+                                     int lateAfterMinutes, BigDecimal lateAmount, BigDecimal absenceAmount) {
+        if (mark == null || mark == AttendanceMark.E || mark == AttendanceMark.I || mark == AttendanceMark.N || justified) {
+            return Decision.none();
+        }
+        if (mark == AttendanceMark.A) {
+            return new Decision(true, FineType.MATCH_ABSENCE, Money.nz(absenceAmount));
+        }
+        if (mark == AttendanceMark.L && minutesLate != null && minutesLate > lateAfterMinutes) {
+            return new Decision(true, FineType.MATCH_LATE, Money.nz(lateAmount));
+        }
+        return Decision.none();
     }
 }

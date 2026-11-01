@@ -25,7 +25,7 @@ public final class LineupValidator {
             }
             Player player = players.stream().filter(item -> item.getId().equals(slot.playerId())).findFirst()
                     .orElseThrow(() -> BusinessException.unprocessable("Unknown player in lineup: " + slot.playerId()));
-            if (player.getStatus() == PlayerStatus.RELEASED || player.getStatus() == PlayerStatus.TRANSFERRED) {
+            if (player.getStatus() == PlayerStatus.RELEASED || player.getStatus() == PlayerStatus.TRANSFERRED || player.getStatus() == PlayerStatus.FORMER) {
                 throw BusinessException.unprocessable(player.getFullName() + " is no longer in the squad", "PLAYER_UNAVAILABLE");
             }
             boolean blocked = player.getStatus() == PlayerStatus.INJURED
@@ -41,7 +41,7 @@ public final class LineupValidator {
         long starters = slots.stream().filter(slot -> slot.selection() == Selection.STARTING).count();
         long bench = slots.stream().filter(slot -> slot.selection() == Selection.SUBSTITUTE).count();
         if (starters != 11) {
-            throw BusinessException.unprocessable("A lineup needs exactly 11 starters");
+            throw BusinessException.unprocessable("A lineup needs exactly 11 starters", "XI_NOT_11");
         }
         if (bench > maxSubstitutes) {
             throw BusinessException.unprocessable("A lineup allows at most " + maxSubstitutes + " substitutes");
@@ -68,7 +68,7 @@ public final class LineupValidator {
             }
         }
         if (!keeper) {
-            throw BusinessException.unprocessable("The starting XI must include a goalkeeper");
+            throw BusinessException.unprocessable("The starting XI must include a goalkeeper", "MIN_GOALKEEPERS");
         }
     }
 }

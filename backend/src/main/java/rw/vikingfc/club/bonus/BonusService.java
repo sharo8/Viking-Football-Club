@@ -63,6 +63,41 @@ public class BonusService {
     }
 
     @Transactional(readOnly = true)
+    public List<Map<String, Object>> byPlayer() {
+        Long seasonId = settingsService.currentSeason().getId();
+        List<BonusRule> rules = ruleRepository.findBySeasonId(seasonId);
+        List<BonusEarned> earned = earnedRepository.findAll();
+        return playerRepository.findByActiveTrueOrderByRegisterNoAsc().stream().map(player -> {
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("id", player.getId());
+            body.put("fullName", player.getFullName());
+            body.put("jerseyNumber", player.getJerseyNumber());
+            body.put("position", player.getPosition() == null ? "" : player.getPosition().name());
+            body.put("photoUrl", player.getPhotoUrl());
+            List<BonusRule> personal = rules.stream()
+                    .filter(rule -> rule.getPlayer() != null && player.getId().equals(rule.getPlayer().getId()))
+                    .toList();
+            List<BonusRule> club = rules.stream().filter(rule -> rule.getPlayer() == null).toList();
+            java.util.Map<BonusType, BonusRule> merged = new java.util.LinkedHashMap<>();
+            for (BonusRule rule : club) merged.put(rule.getBonusType(), rule);
+            for (BonusRule rule : personal) merged.put(rule.getBonusType(), rule);
+            List<Map<String, Object>> rates = merged.values().stream().map(rule -> {
+                Map<String, Object> view = ruleView(rule);
+                view.put("inherited", rule.getPlayer() == null);
+                return view;
+            }).toList();
+            body.put("rates", rates);
+            body.put("ratesSource", personal.isEmpty() && !club.isEmpty() ? "CLUB" : personal.isEmpty() ? "NONE" : "PLAYER");
+            List<BonusEarned> mine = earned.stream().filter(row -> player.getId().equals(row.getPlayer().getId())).toList();
+            body.put("accrued", sum(mine, BonusStatus.PENDING));
+            body.put("approved", sum(mine, BonusStatus.APPROVED));
+            body.put("paid", sum(mine, BonusStatus.PAID));
+            body.put("earnedCount", mine.size());
+            return body;
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> rules() {
         Long seasonId = settingsService.currentSeason().getId();
         return ruleRepository.findBySeasonId(seasonId).stream().map(this::ruleView).toList();
@@ -83,6 +118,7 @@ public class BonusService {
         return earnedView(earnedRepository.save(earned));
     }
 
+    @Transactional
     public Map<String, Object> approve(Long id) {
         BonusEarned earned = load(id);
         if (earned.getStatus() == BonusStatus.CANCELLED || earned.getStatus() == BonusStatus.PAID) {
@@ -91,9 +127,10 @@ public class BonusService {
         earned.setStatus(BonusStatus.APPROVED);
         earned.setApprovedBy(SecurityUtils.email());
         earned.setApprovedAt(Instant.now(clock));
-        return earnedView(earned);
+        return earnedView(earnedRepository.save(earned));
     }
 
+    @Transactional
     public Map<String, Object> pay(Long id) {
         BonusEarned earned = load(id);
         if (earned.getStatus() != BonusStatus.APPROVED && earned.getStatus() != BonusStatus.PENDING) {
@@ -104,16 +141,17 @@ public class BonusService {
             earned.setApprovedBy(SecurityUtils.email());
             earned.setApprovedAt(Instant.now(clock));
         }
-        return earnedView(earned);
+        return earnedView(earnedRepository.save(earned));
     }
 
+    @Transactional
     public Map<String, Object> cancel(Long id) {
         BonusEarned earned = load(id);
         if (earned.getStatus() == BonusStatus.PAID) {
             throw BusinessException.conflict("A paid bonus cannot be cancelled. Reverse it in finance first.");
         }
         earned.setStatus(BonusStatus.CANCELLED);
-        return earnedView(earned);
+        return earnedView(earnedRepository.save(earned));
     }
 
     @Transactional(readOnly = true)
@@ -258,7 +296,7 @@ public class BonusService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("id", rule.getId());
         body.put("playerId", rule.getPlayer() == null ? null : rule.getPlayer().getId());
-        body.put("playerName", rule.getPlayer() == null ? null : rule.getPlayer().getKnownAs());
+        body.put("playerName", rule.getPlayer() == null ? null : rule.getPlayer().getFullName());
         body.put("type", rule.getBonusType());
         body.put("amount", rule.getAmount());
         body.put("validFrom", rule.getValidFrom());
@@ -266,6 +304,9 @@ public class BonusService {
         body.put("active", rule.isRuleActive());
         body.put("description", rule.getDescription());
         body.put("customName", rule.getCustomName());
+        body.put("sourceLang", rule.getCustomSourceLang());
+        body.put("nameFr", rule.getCustomNameFr());
+        body.put("nameRw", rule.getCustomNameRw());
         return body;
     }
 
@@ -306,6 +347,9 @@ public class BonusService {
             rule.setSeason(settingsService.currentSeason());
             rule.setBonusType(BonusType.valueOf(String.valueOf(row.get("type"))));
             rule.setCustomName(row.get("customName") == null ? null : String.valueOf(row.get("customName")).trim());
+            rule.setCustomSourceLang(row.get("sourceLang") == null ? null : String.valueOf(row.get("sourceLang")));
+            rule.setCustomNameFr(row.get("nameFr") == null ? null : String.valueOf(row.get("nameFr")).trim());
+            rule.setCustomNameRw(row.get("nameRw") == null ? null : String.valueOf(row.get("nameRw")).trim());
             rule.setAmount(new BigDecimal(String.valueOf(row.get("amount"))));
             rule.setDescription(row.get("note") == null ? null : String.valueOf(row.get("note")));
             rule.setRuleActive(row.get("active") == null || Boolean.TRUE.equals(row.get("active")));
@@ -318,7 +362,7 @@ public class BonusService {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("id", earned.getId());
         body.put("playerId", earned.getPlayer().getId());
-        body.put("playerName", earned.getPlayer().getKnownAs());
+        body.put("playerName", earned.getPlayer().getFullName());
         body.put("matchId", earned.getMatch() == null ? null : earned.getMatch().getId());
         body.put("type", earned.getBonusType());
         body.put("amount", earned.getAmount());

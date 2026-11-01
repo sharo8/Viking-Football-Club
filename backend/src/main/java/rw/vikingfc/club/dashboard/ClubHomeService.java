@@ -5,7 +5,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rw.vikingfc.club.attendance.AttendanceService;
-import rw.vikingfc.club.audit.AuditLogRepository;
+import rw.vikingfc.club.audit.AuditViewService;
 import rw.vikingfc.club.bonus.BonusEarned;
 import rw.vikingfc.club.bonus.BonusEarnedRepository;
 import rw.vikingfc.club.bonus.BonusStatus;
@@ -63,7 +63,7 @@ public class ClubHomeService {
     private final PlayerRepository playerRepository;
     private final StaffMemberRepository staffRepository;
     private final PlayerContractRepository contractRepository;
-    private final AuditLogRepository auditLogRepository;
+    private final AuditViewService auditViewService;
     private final BonusEarnedRepository bonusRepository;
     private final FinanceService financeService;
     private final AttendanceService attendanceService;
@@ -78,7 +78,9 @@ public class ClubHomeService {
         List<FootballMatch> previous = previousFinished(period);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("players", playerRepository.countByActiveTrue());
-        body.put("staff", staffRepository.findByActiveTrueOrderByFullNameAsc().size());
+        body.put("staff", staffRepository.findByActiveTrueOrderByFullNameAsc().stream()
+                .filter(staff -> staff.getListedIn() == null || !"ADMINISTRATION".equalsIgnoreCase(staff.getListedIn()))
+                .count());
         body.put("played", current.size());
         body.put("goalsFor", sum(current, FootballMatch::getGoalsFor));
         body.put("goalsAgainst", sum(current, FootballMatch::getGoalsAgainst));
@@ -143,16 +145,7 @@ public class ClubHomeService {
     }
 
     public PageResponse<Map<String, Object>> activity(int page, int size) {
-        var slice = auditLogRepository.findAllByOrderByCreatedAtDesc(org.springframework.data.domain.PageRequest.of(Math.max(page, 0), clamp(size)));
-        List<Map<String, Object>> rows = slice.getContent().stream().map(log -> {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("id", log.getId());
-            row.put("at", log.getCreatedAt());
-            row.put("text", log.getAction() + " " + log.getEntityName());
-            row.put("actor", log.getActorEmail());
-            return row;
-        }).toList();
-        return new PageResponse<>(rows, slice.getNumber(), slice.getSize(), slice.getTotalElements(), slice.getTotalPages());
+        return auditViewService.list(page, size, null, null);
     }
 
     public List<Map<String, Object>> alerts() {

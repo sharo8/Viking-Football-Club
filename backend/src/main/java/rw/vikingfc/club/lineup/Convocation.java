@@ -43,4 +43,10 @@ public class Convocation extends BaseEntity {
     private Instant notifiedAt;
     private Instant readAt;
     private Instant confirmedAt;
+    private Instant confirmedByCoachAt;
+    private Instant sentAt;
+    @Column(length = 20)
+    private String sendMode;
+    @Column(nullable = false)
+    private int listVersion = 1;
 }

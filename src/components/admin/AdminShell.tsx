@@ -43,22 +43,28 @@ import { readSession } from "@/components/login/session";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { canSee, ROLE_LABEL, type AdminSection } from "@/lib/admin/access";
+import { canSee, isExecutive, ROLE_LABEL, type AdminSection } from "@/lib/admin/access";
 import { adminCopy, type AdminLocale } from "@/lib/admin/copy";
+import { Avatar } from "@/ui/kit";
 import { ToastContext } from "./toast";
 import { ChatDock } from "./ChatDock";
+import { AttentionBar } from "./AttentionBar";
 import "./admin.css";
+import { SessionPulse } from "./SessionPulse";
 import "@/ui/ui.css";
 
 const NAV: { id: AdminSection; href: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", href: "/admin", icon: LayoutDashboard },
   { id: "players", href: "/admin/players", icon: Users },
+  { id: "formerPlayers", href: "/admin/former-players", icon: Users },
   { id: "captains", href: "/admin/captains", icon: Shield },
   { id: "staff", href: "/admin/staff", icon: UserCog },
   { id: "matches", href: "/admin/matches", icon: Calendar },
+  { id: "calendar", href: "/admin/calendar", icon: Calendar },
   { id: "lineup", href: "/admin/lineup", icon: ClipboardList },
   { id: "attendance", href: "/admin/attendance", icon: Table2 },
   { id: "finance", href: "/admin/finance", icon: Wallet },
+  { id: "bonuses", href: "/admin/bonuses", icon: Wallet },
   { id: "fines", href: "/admin/fines", icon: FileText },
   { id: "medical", href: "/admin/medical", icon: Stethoscope },
   { id: "news", href: "/admin/news", icon: FileText },
@@ -72,20 +78,28 @@ const NAV: { id: AdminSection; href: string; icon: typeof LayoutDashboard }[] = 
   { id: "messages", href: "/admin/messages", icon: Mail },
   { id: "emails", href: "/admin/emails", icon: Mail },
   { id: "notifications", href: "/admin/notifications", icon: Bell },
-  { id: "users", href: "/admin/users", icon: Shield },
+  { id: "users", href: "/admin/administration", icon: Shield },
+  { id: "roles", href: "/admin/roles", icon: Shield },
+  { id: "approvals", href: "/admin/approvals", icon: Shield },
   { id: "reports", href: "/admin/reports", icon: FileText },
   { id: "audit", href: "/admin/audit", icon: Shield },
   { id: "settings", href: "/admin/settings", icon: Settings },
 ];
 
 
+const GROUPS: { id: string; label: string; ids: AdminSection[] }[] = [
+  { id: "club", label: "groupClub", ids: ["dashboard", "players", "formerPlayers", "captains", "staff"] },
+  { id: "sport", label: "groupSport", ids: ["matches", "calendar", "lineup", "table", "attendance", "medical"] },
+  { id: "finance", label: "groupFinance", ids: ["finance", "bonuses", "fines"] },
+  { id: "communication", label: "groupCommunication", ids: ["marketing", "messages", "notifications", "emails", "news", "gallery", "videos"] },
+  { id: "administration", label: "groupAdministration", ids: ["users", "roles", "approvals", "reports", "audit", "settings", "partners", "sponsors", "transfers"] },
+];
+
 function sectionFromPath(pathname: string): AdminSection {
   const part = pathname.split("/")[2];
+  if (part === "administration" || part === "users") return "users";
+  if (part === "former-players") return "formerPlayers";
   return (part || "dashboard") as AdminSection;
-}
-
-function initials(name: string) {
-  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("");
 }
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -109,10 +123,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<{ id: string; text: string; read?: boolean }[]>([]);
   const [showTop, setShowTop] = useState(false);
   const [toast, setToast] = useState("");
+  const [closed, setClosed] = useState<Record<string, boolean>>({});
+  const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useEffect(() => {
     setCollapsed(localStorage.getItem("vfc_sidebar") === "collapsed");
     setRead(JSON.parse(localStorage.getItem("vfc_notes_read") || "[]"));
+    try {
+      setClosed(JSON.parse(localStorage.getItem("vfc_nav_groups") || "{}"));
+    } catch {
+      setClosed({});
+    }
   }, []);
 
   useEffect(() => {
@@ -120,6 +141,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
     if (user?.mustChangePassword) router.replace("/change-password");
     else if (!user && !readSession()?.accessToken) router.replace("/login");
   }, [ready, user, router]);
+
+  useEffect(() => {
+    if (!user || !isExecutive(user.role)) return undefined;
+    const pull = () => getData("/api/deletion-requests", { status: "PENDING" }).then((rows) => setPendingApprovals((rows || []).length)).catch(() => setPendingApprovals(0));
+    pull();
+    const timer = window.setInterval(pull, 15000);
+    return () => window.clearInterval(timer);
+  }, [user]);
 
   useEffect(() => {
     if (!user || user.mustChangePassword) return;
@@ -183,20 +212,43 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
           </Link>
           <nav className="admin-nav" aria-label="Admin">
-            {visibleNav.map((item) => {
-              const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
-              const Icon = item.icon;
+            {GROUPS.map((group) => {
+              const items = visibleNav.filter((item) => group.ids.includes(item.id));
+              if (!items.length) return null;
+              const shut = Boolean(closed[group.id]);
               return (
-                <Link key={item.id} href={item.href} className={`admin-link${active ? " is-active" : ""}`} title={copy[item.id]}>
-                  {active ? <motion.span layoutId="admin-pill" className="admin-pill" /> : null}
-                  <Icon size={18} />
-                  <span>{copy[item.id]}</span>
-                </Link>
+                <div key={group.id} className="nav-group">
+                  <button
+                    type="button"
+                    className="nav-group-label"
+                    aria-expanded={!shut}
+                    onClick={() => {
+                      const next = { ...closed, [group.id]: !shut };
+                      setClosed(next);
+                      localStorage.setItem("vfc_nav_groups", JSON.stringify(next));
+                    }}
+                  >
+                    <span>{(copy as Record<string, string>)[group.label] || group.label}</span>
+                    <ChevronDown size={14} className={shut ? "is-shut" : ""} />
+                  </button>
+                  {shut ? null : items.map((item) => {
+                    const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
+                    const Icon = item.icon;
+                    return (
+                      <Link key={item.id} href={item.href} className={`admin-link${active ? " is-active" : ""}`} title={copy[item.id]}>
+                        {active ? <motion.span layoutId="admin-pill" className="admin-pill" /> : null}
+                        <Icon size={18} />
+                        <span>{copy[item.id]}</span>
+                        {item.id === "approvals" && pendingApprovals > 0 ? <span className="badge-dot">{pendingApprovals}</span> : null}
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
           </nav>
           <div className="admin-profile">
-            {user.photo ? <img className="admin-avatar" src={user.photo} alt="" /> : <span className="admin-avatar admin-avatar--initials" aria-hidden="true">{initials(user.fullName)}</span>}
+            <Avatar name={user.fullName} src={user.photo || undefined} size="sm" ring />
             <p>
               {user.fullName}
               <br />
@@ -216,6 +268,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
         </aside>
 
+        <div className="admin-stage">
         <header className="admin-head">
           <button type="button" className="icon-btn mobile-only" aria-label={copy.menu} onClick={() => setDrawer(true)}>
             <Menu size={18} />
@@ -284,7 +337,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <div style={{ position: "relative" }}>
               <button type="button" className="icon-btn" aria-label={copy.notifications} onClick={() => setNotesOpen((v) => !v)}>
                 <Bell size={18} />
-                {notes.filter((note) => !note.read && !read.includes(note.id)).length > 0 ? <span className="badge-dot">{notes.filter((note) => !note.read && !read.includes(note.id)).length}</span> : null}
+                {notes.filter((note) => !note.read && !read.includes(note.id)).length > 0 || pendingApprovals > 0 ? <span className="badge-dot">{Math.max(notes.filter((note) => !note.read && !read.includes(note.id)).length, pendingApprovals)}</span> : null}
               </button>
               <AnimatePresence>
                 {notesOpen ? (
@@ -309,7 +362,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
             <div style={{ position: "relative" }}>
               <button type="button" className="admin-user" aria-label={user.fullName} onClick={() => setProfileOpen((v) => !v)}>
-                {user.photo ? <img src={user.photo} alt="" className="admin-avatar" /> : <span className="admin-avatar admin-avatar--initials" aria-hidden="true">{initials(user.fullName)}</span>}
+                <Avatar name={user.fullName} src={user.photo || undefined} size="md" ring />
                 <span>
                   <strong>{user.fullName}</strong>
                   <small>{ROLE_LABEL[user.role] || user.role}</small>
@@ -341,13 +394,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
+        <AttentionBar />
+
         <main
           ref={mainRef}
           className="admin-main"
           onScroll={(event) => setShowTop(event.currentTarget.scrollTop > 400)}
         >
+          <SessionPulse />
           {children}
         </main>
+        </div>
 
         {showTop ? (
           <button type="button" className="top-btn" aria-label={copy.backToTop} onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: "smooth" })}>

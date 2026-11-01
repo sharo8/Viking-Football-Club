@@ -5,11 +5,17 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import rw.vikingfc.club.audit.AuditService;
 import rw.vikingfc.club.bonus.BonusService;
 import rw.vikingfc.club.common.access.ClubAccess;
 import rw.vikingfc.club.common.exception.BusinessException;
 import rw.vikingfc.club.common.exception.NotFoundException;
+import rw.vikingfc.club.competition.Competition;
+import rw.vikingfc.club.competition.CompetitionRepository;
+import rw.vikingfc.club.competition.CompetitionType;
 import rw.vikingfc.club.config.JpaConfig;
+import rw.vikingfc.club.lineup.Convocation;
+import rw.vikingfc.club.lineup.ConvocationRepository;
 import rw.vikingfc.club.lineup.LineupSlot;
 import rw.vikingfc.club.lineup.LineupSlotRepository;
 import rw.vikingfc.club.lineup.LineupState;
@@ -18,13 +24,17 @@ import rw.vikingfc.club.lineup.LineupVersionRepository;
 import rw.vikingfc.club.lineup.Selection;
 import rw.vikingfc.club.player.Player;
 import rw.vikingfc.club.player.PlayerRepository;
+import rw.vikingfc.club.marketing.NotificationService;
 import rw.vikingfc.club.player.PlayerStatus;
 import rw.vikingfc.club.sanction.FineService;
 import rw.vikingfc.club.settings.ClubSettings;
 import rw.vikingfc.club.settings.SettingsService;
+import rw.vikingfc.club.user.Role;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,11 +57,28 @@ public class MatchService {
     private final BonusService bonusService;
     private final FineService fineService;
     private final EntityManager entityManager;
+    private final CompetitionRepository competitionRepository;
+    private final ConvocationRepository convocationRepository;
+    private final StandingsService standingsService;
+    private final NotificationService notificationService;
+    private final AuditService auditService;
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> list() {
-        Long seasonId = settingsService.currentSeason().getId();
-        return matchRepository.findBySeasonIdOrderByKickoffAsc(seasonId).stream().map(this::view).toList();
+        return search(null, null, null, null, null, null);
+    }
+
+    public List<Map<String, Object>> search(Long competitionId, String type, String status, Boolean home, String query, Boolean needsAttention) {
+        String needle = query == null ? "" : query.trim().toLowerCase();
+        return matchRepository.findBySeasonIdOrderByKickoffAsc(settingsService.currentSeason().getId()).stream()
+                .filter(match -> competitionId == null || (match.getCompetitionRef() != null && competitionId.equals(match.getCompetitionRef().getId())))
+                .filter(match -> type == null || type.isBlank() || (match.getCompetitionRef() != null && match.getCompetitionRef().getType().name().equalsIgnoreCase(type)))
+                .filter(match -> status == null || status.isBlank() || match.getStatus().name().equalsIgnoreCase(status))
+                .filter(match -> home == null || match.isHomeMatch() == home)
+                .filter(match -> needle.isEmpty() || match.getOpponent().getName().toLowerCase().contains(needle) || match.getCompetition().toLowerCase().contains(needle))
+                .map(this::view)
+                .filter(row -> needsAttention == null || !needsAttention || !((List<?>) row.get("alerts")).isEmpty())
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -67,14 +94,71 @@ public class MatchService {
         match.setStoppageMinutes(0);
         match.setStatus(MatchStatus.SCHEDULED);
         apply(match, request);
-        return view(matchRepository.save(match));
+        guardDuplicate(match);
+        FootballMatch saved = matchRepository.save(match);
+        refreshTable(saved);
+        auditService.record("CREATE", "Match", saved.getId(), null, saved.getOpponent().getName(), null);
+        return view(saved);
     }
 
     public Map<String, Object> update(Long id, MatchWrite request) {
         FootballMatch match = load(id);
         apply(match, request);
+        guardDuplicate(match);
         recomputeScore(match);
         bonusService.sync(match);
+        refreshTable(match);
+        auditService.record("UPDATE", "Match", match.getId(), null, match.getStatus().name(), null);
+        return view(match);
+    }
+
+    public void delete(Long id) {
+        FootballMatch match = load(id);
+        boolean lineup = !lineupRepository.findByMatchIdOrderByRevisionDesc(id).isEmpty();
+        boolean result = match.getStatus() == MatchStatus.FINISHED || match.getGoalsFor() > 0 || match.getGoalsAgainst() > 0;
+        if (lineup || result) {
+            throw BusinessException.conflict("This match has a lineup or a result. Cancel the match instead of deleting it.", "MATCH_LOCKED", null);
+        }
+        matchRepository.delete(match);
+        auditService.record("DELETE", "Match", id, match.getOpponent().getName(), null, null);
+    }
+
+    public Map<String, Object> reschedule(Long id, Instant kickoff) {
+        FootballMatch match = load(id);
+        if (match.getStatus() == MatchStatus.FINISHED) {
+            throw BusinessException.conflict("This match can no longer be moved", "MATCH_LOCKED", null);
+        }
+        match.setKickoff(kickoff);
+        guardDuplicate(match);
+        notificationService.notifyRoles(List.of(Role.HEAD_COACH, Role.ASSISTANT_COACH, Role.ASSISTANT_MANAGER, Role.PRESIDENT, Role.GENERAL_MANAGER),
+                "MATCH", "Match rescheduled", match.getOpponent().getName(), "/admin/calendar");
+        auditService.record("RESCHEDULE", "Match", id, null, kickoff.toString(), null);
+        return view(match);
+    }
+
+    public Map<String, Object> recordResult(Long id, int goalsFor, int goalsAgainst, Integer crowd, List<Scorer> scorers) {
+        if (scorers == null || scorers.size() != goalsFor) {
+            throw BusinessException.unprocessable("The score must match the number of goal events", "RESULT_MISMATCH");
+        }
+        FootballMatch match = load(id);
+        for (MatchEvent event : new ArrayList<>(eventRepository.findByMatchIdOrderByEventMinuteAsc(id))) {
+            if (event.getEventType() == EventType.GOAL || event.getEventType() == EventType.PENALTY_GOAL) {
+                eventRepository.delete(event);
+            }
+        }
+        for (Scorer scorer : scorers) {
+            addEvent(id, new EventWrite(scorer.minute(), EventType.GOAL, scorer.playerId(), scorer.assistId(), null));
+        }
+        match.setGoalsAgainst(goalsAgainst);
+        match.setCrowdAttendance(crowd);
+        match.setStatus(MatchStatus.FINISHED);
+        recomputeScore(match);
+        bonusService.sync(match);
+        refreshTable(match);
+        notificationService.notifyRoles(List.of(Role.PRESIDENT, Role.GENERAL_MANAGER, Role.FINANCE_MANAGER, Role.HEAD_COACH, Role.ASSISTANT_COACH, Role.ASSISTANT_MANAGER),
+                "RESULT", "Result: Viking FC " + match.getGoalsFor() + "-" + goalsAgainst + " " + match.getOpponent().getName(),
+                "League table updated", "/admin/table");
+        auditService.record("RESULT", "Match", id, null, match.getGoalsFor() + "-" + goalsAgainst, null);
         return view(match);
     }
 
@@ -332,6 +416,67 @@ public class MatchService {
         if (request.stoppageMinutes() != null) {
             match.setStoppageMinutes(request.stoppageMinutes());
         }
+        linkCompetition(match, request);
+        if (request.stage() != null) {
+            match.setStage(request.stage());
+        }
+        if (request.alertHours() != null) {
+            match.setAlertHours(request.alertHours());
+        }
+        if (request.squadSizeOverride() != null) {
+            match.setSquadSizeOverride(request.squadSizeOverride() <= 0 ? null : request.squadSizeOverride());
+        }
+    }
+
+    private void linkCompetition(FootballMatch match, MatchWrite request) {
+        Competition competition = null;
+        if (request.competitionId() != null) {
+            competition = competitionRepository.findById(request.competitionId())
+                    .orElseThrow(() -> NotFoundException.of("Competition", request.competitionId()));
+            match.setCompetition(competition.getName());
+        } else if (request.competition() != null) {
+            competition = competitionRepository.findBySeasonIdAndNameIgnoreCase(match.getSeason().getId(), request.competition()).orElse(null);
+            if (competition == null) {
+                boolean friendly = "friendly".equalsIgnoreCase(request.competition()) || "amical".equalsIgnoreCase(request.competition());
+                competition = new Competition();
+                competition.setSeason(match.getSeason());
+                competition.setName(request.competition());
+                competition.setType(friendly ? CompetitionType.FRIENDLY : CompetitionType.OTHER);
+                competition.setOfficial(!friendly);
+                competition.setCountsForTable(false);
+                competition.setColor(friendly ? "#5c6570" : "#a3283a");
+                competition = competitionRepository.save(competition);
+            }
+        }
+        if (competition == null) {
+            return;
+        }
+        match.setCompetitionRef(competition);
+        if (competition.getType() == CompetitionType.FRIENDLY) {
+            match.setOfficial(false);
+        } else if (request.official() != null) {
+            match.setOfficial(request.official());
+        } else {
+            match.setOfficial(competition.isOfficial());
+        }
+    }
+
+    private void guardDuplicate(FootballMatch match) {
+        boolean duplicate = matchRepository.findBySeasonIdOrderByKickoffAsc(match.getSeason().getId()).stream()
+                .anyMatch(other -> (match.getId() == null || !match.getId().equals(other.getId()))
+                        && other.getStatus() != MatchStatus.CANCELLED
+                        && other.getOpponent().getId().equals(match.getOpponent().getId())
+                        && other.getCompetition().equalsIgnoreCase(match.getCompetition())
+                        && Math.abs(Duration.between(other.getKickoff(), match.getKickoff()).toHours()) < 20);
+        if (duplicate) {
+            throw BusinessException.conflict("A match against this opponent in this competition already exists on this date", "DUPLICATE_MATCH", null);
+        }
+    }
+
+    private void refreshTable(FootballMatch match) {
+        if (match.getStatus() == MatchStatus.FINISHED && match.getCompetitionRef() != null && match.getCompetitionRef().isCountsForTable()) {
+            standingsService.recalculate(match.getCompetitionRef().getId());
+        }
     }
 
     private void recomputeScore(FootballMatch match) {
@@ -403,7 +548,44 @@ public class MatchService {
         body.put("referee", match.getReferee());
         body.put("formation", match.getFormation());
         body.put("lineupVisible", lineupVisible(match));
+        body.put("stage", match.getStage());
+        body.put("official", match.isOfficial());
+        body.put("squadSizeOverride", match.getSquadSizeOverride());
+        body.put("alertHours", match.getAlertHours());
+        if (match.getCompetitionRef() != null) {
+            body.put("competitionId", match.getCompetitionRef().getId());
+            body.put("competitionType", match.getCompetitionRef().getType());
+            body.put("competitionColor", match.getCompetitionRef().getColor());
+            body.put("countsForTable", match.getCompetitionRef().isCountsForTable());
+        }
+        LineupVersion lineup = lineupRepository.findByMatchIdOrderByRevisionDesc(match.getId()).stream().findFirst().orElse(null);
+        body.put("lineupStatus", lineup == null ? "NONE" : lineup.getStatus().name());
+        List<Convocation> calls = match.getId() == null ? List.of() : convocationRepository.findByMatchId(match.getId());
+        body.put("calledCount", calls.stream().filter(Convocation::isCalled).count());
+        body.put("confirmedCount", calls.stream().filter(call -> call.isCalled() && "CONFIRMED".equals(call.getResponse())).count());
+        body.put("alerts", matchAlerts(match, lineup));
         return body;
+    }
+
+    private List<String> matchAlerts(FootballMatch match, LineupVersion lineup) {
+        List<String> alerts = new ArrayList<>();
+        if (match.getKickoff() == null) {
+            return alerts;
+        }
+        Instant now = Instant.now();
+        boolean published = lineup != null && (lineup.getStatus() == rw.vikingfc.club.lineup.LineupState.PUBLISHED
+                || lineup.getStatus() == rw.vikingfc.club.lineup.LineupState.LOCKED
+                || lineup.getStatus() == rw.vikingfc.club.lineup.LineupState.FINISHED);
+        if ((match.getStatus() == MatchStatus.SCHEDULED || match.getStatus() == MatchStatus.LINEUP_PUBLISHED) && match.getKickoff().isBefore(now)) {
+            alerts.add("RESULT_MISSING");
+        }
+        if (!published && match.getStatus() != MatchStatus.CANCELLED && match.getStatus() != MatchStatus.POSTPONED && match.getStatus() != MatchStatus.FINISHED) {
+            long hours = Duration.between(now, match.getKickoff()).toHours();
+            if (hours >= 0 && hours <= 72) {
+                alerts.add(hours < match.getAlertHours() ? "LINEUP_OVERDUE" : "LINEUP_DUE");
+            }
+        }
+        return alerts;
     }
 
     private boolean lineupVisible(FootballMatch match) {
@@ -418,7 +600,11 @@ public class MatchService {
     public record MatchWrite(@NotNull String competition, String roundLabel, Integer matchday, @NotNull Long opponentId,
                              @NotNull Instant kickoff, String venue, Boolean homeMatch, MatchStatus status,
                              Integer goalsAgainst, Integer crowdAttendance, String referee, String notes,
-                             Integer stoppageMinutes) {
+                             Integer stoppageMinutes, Long competitionId, String stage, Boolean official, Integer alertHours,
+                             Integer squadSizeOverride) {
+    }
+
+    public record Scorer(int minute, Long playerId, Long assistId) {
     }
 
     public record EventWrite(@NotNull Integer minute, @NotNull EventType type, Long playerId, Long relatedPlayerId, String note) {

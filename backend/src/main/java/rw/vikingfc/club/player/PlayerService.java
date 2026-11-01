@@ -147,10 +147,25 @@ public class PlayerService {
     }
 
     private boolean allowed(Player player) {
-        return !ClubAccess.goalkeepersOnly() || player.getPosition() == Position.GOALKEEPER;
+        return player.getStatus() != PlayerStatus.FORMER
+                && !Boolean.TRUE.equals(player.getAnonymized())
+                && (!ClubAccess.goalkeepersOnly() || player.getPosition() == Position.GOALKEEPER);
     }
 
     private void apply(Player player, PlayerDtos.Write request) {
+        if (request.jerseyNumber() != null) {
+            Long self = player.getId();
+            playerRepository.findByActiveTrueOrderByRegisterNoAsc().stream()
+                    .filter(other -> other.getDeletedAt() == null && other.getStatus() != PlayerStatus.FORMER)
+                    .filter(other -> request.jerseyNumber().equals(other.getJerseyNumber()))
+                    .filter(other -> self == null || !other.getId().equals(self))
+                    .findFirst()
+                    .ifPresent(owner -> {
+                        throw BusinessException.conflict(
+                                "Number " + request.jerseyNumber() + " is already assigned to " + owner.getFullName(),
+                                "JERSEY_TAKEN", java.util.Map.of("owner", owner.getFullName()));
+                    });
+        }
         player.setRegisterNo(request.registerNo());
         player.setJerseyNumber(request.jerseyNumber());
         player.setFullName(request.fullName().trim());

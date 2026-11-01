@@ -7,9 +7,12 @@ import { api, API_URL, getData } from "@/services/api";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { isExecutive } from "@/lib/admin/access";
-import { Button, Field, Modal, SelectInput, TextArea, TextInput } from "@/ui/kit";
+import { Badge, Button, Field, Modal, SelectInput, Tabs, TextArea, TextInput } from "@/ui/kit";
 import { ChartCard } from "./dashboard/parts";
 import { lineupCopy } from "./lineupCopy";
+import { lineupFlowCopy } from "./lineupFlowCopy";
+import { LineupBuilder } from "./lineupBuilder";
+import { LineupMatches } from "./lineupMatches";
 import "./lineup.css";
 
 const STEP_KEYS = ["DRAFT", "SUBMITTED", "APPROVED", "PUBLISHED", "LOCKED", "FINISHED"];
@@ -18,6 +21,10 @@ const REASONS = ["Injured", "Suspended", "Tactical", "Rested", "Discipline", "No
 
 function copyFor(locale) {
   return lineupCopy[locale] || lineupCopy.en;
+}
+
+function flowFor(locale) {
+  return lineupFlowCopy[locale] || lineupFlowCopy.en;
 }
 
 function reduced() {
@@ -108,12 +115,24 @@ function hydrate(sheet) {
     if (slot.captain) captainId = slot.playerId;
     if (slot.overrideReason) overrides[slot.playerId] = slot.overrideReason;
   });
+  const members = sheet?.squadMembers || [];
+  const reasons = {};
+  members.forEach((row) => {
+    if (!row.called && row.reasonNotCalled) reasons[row.playerId] = row.reasonNotCalled;
+    if (row.overrideReason) overrides[row.playerId] = row.overrideReason;
+  });
+  const calledFromMembers = members.filter((row) => row.called).map((row) => row.playerId);
+  const called = calledFromMembers.length ? calledFromMembers : [...new Set([...Object.values(starters), ...bench])];
   return {
     formation,
     starters,
     bench,
     captainId,
     overrides,
+    reasons,
+    called,
+    squadSize: sheet?.lineup?.squadSize || sheet?.match?.squadSizeOverride || sheet?.settings?.competitionRule?.squadSize || sheet?.settings?.defaultSquadSize || 18,
+    plan: sheet?.lineup?.squadPlan || null,
     opponentFormation: sheet?.lineup?.opponentFormation || "4-4-2",
     opponentNames: sheet?.lineup?.opponentNames || "",
   };
@@ -160,6 +179,8 @@ export function LineupOffice() {
   const { locale } = useLocale();
   const { user } = useAuth();
   const copy = copyFor(locale);
+  const flow = flowFor(locale);
+  const [view, setView] = useState("builder");
   const executive = isExecutive(user?.role || "");
   const [matches, setMatches] = useState([]);
   const [matchId, setMatchId] = useState("");
@@ -249,6 +270,7 @@ export function LineupOffice() {
   }, [matchId]);
 
   useEffect(() => {
+    if (view === "builder" && tab === "lineup") return undefined;
     if (!dirty || !draft || !sheet?.permissions?.edit) return undefined;
     if (skipSave.current) {
       skipSave.current = false;
@@ -272,7 +294,7 @@ export function LineupOffice() {
       }).finally(() => setSaving(false));
     }, 2500);
     return () => clearTimeout(timer);
-  }, [dirty, draft, matchId, sheet]);
+  }, [dirty, draft, matchId, sheet, view, tab]);
 
   const squad = sheet?.squad || [];
   const spots = spotsOf(sheet, draft?.formation || "4-3-3");
@@ -390,11 +412,13 @@ export function LineupOffice() {
   }, [draft, squad, sheet, copy]);
 
   const counts = useMemo(() => {
-    const called = Object.values(calls).filter((row) => row.called).length;
+    const called = draft?.called?.length || Object.values(calls).filter((row) => row.called).length;
     const unavailable = squad.filter((player) => player.availability === "INJURED" || player.availability === "SUSPENDED").length;
     const rated = (sheet?.ratings || []).map((row) => Number(row.final)).filter((value) => !Number.isNaN(value));
     const average = rated.length ? (rated.reduce((sum, value) => sum + value, 0) / rated.length).toFixed(1) : null;
-    return { called, xi: Object.keys(draft?.starters || {}).length, bench: draft?.bench.length || 0, notCalled: squad.length - called, unavailable, average };
+    const size = draft?.squadSize || sheet?.settings?.defaultSquadSize || 18;
+    const xi = Object.keys(draft?.starters || {}).length;
+    return { called, size, xi, bench: Math.max(0, called - xi), notCalled: Math.max(0, squad.length - called), unavailable, average };
   }, [calls, squad, draft, sheet]);
 
   const deadline = lineup?.deadlineAt || (match ? new Date(new Date(match.kickoff).getTime() - (sheet?.settings?.deadlineHours || 48) * 3600000).toISOString() : null);
@@ -424,7 +448,12 @@ export function LineupOffice() {
 
   return (
     <section className="lineup-page">
-      <div className="lineup-bar">
+      <div className="view-switch" role="tablist" aria-label={flow.viewBuilder}>
+        <button type="button" className={view === "builder" ? "on" : ""} onClick={() => setView("builder")}>{flow.viewBuilder}</button>
+        <button type="button" className={view === "matches" ? "on" : ""} onClick={() => setView("matches")}>{flow.viewMatches}</button>
+      </div>
+      {view === "matches" ? <LineupMatches flow={flow} copy={copy} locale={locale} catalog={matches} setError={setError} onOpen={(id) => { setMatchId(String(id)); setView("builder"); setTab("lineup"); }} /> : null}
+      {view === "builder" ? <div className="lineup-bar">
         <button type="button" className="vfc-btn vfc-btn--secondary" onClick={() => shift(-1)} aria-label={copy.prev}>{copy.prev}</button>
         <SelectInput aria-label={copy.title} value={matchId} onChange={(event) => setMatchId(event.target.value)}>
           <optgroup label={copy.upcoming}>{upcoming.map((row) => <option key={row.id} value={row.id}>{row.opponent} · {when(locale, row.kickoff)}</option>)}</optgroup>
@@ -433,13 +462,13 @@ export function LineupOffice() {
         <button type="button" className="vfc-btn vfc-btn--secondary" onClick={() => shift(1)} aria-label={copy.next}>{copy.next}</button>
         <Link href="/admin/matches">{copy.schedule}</Link>
         {sheet?.published === false ? <span>{copy.unpublished}</span> : null}
-      </div>
+      </div> : null}
 
-      {loading || !sheet || !draft ? <div className="lineup-panel" style={{ padding: 16 }}>{[1, 2, 3, 4].map((item) => <div key={item} className="skel" style={{ marginBottom: 8 }} />)}<p>{copy.loading}</p></div> : null}
+      {view === "builder" && (loading || !sheet || !draft) ? <div className="lineup-panel" style={{ padding: 16 }}>{[1, 2, 3, 4].map((item) => <div key={item} className="skel" style={{ marginBottom: 8 }} />)}<p>{copy.loading}</p></div> : null}
       {error ? <p className="banner" role="alert">{error} <button type="button" onClick={() => setMatchId(matchId)}>{copy.retry}</button></p> : null}
       {notice ? <p className="banner">{notice}</p> : null}
 
-      {match && draft ? (
+      {view === "builder" && match && draft ? (
         <>
           <header className="lineup-head">
             <div className="lineup-score">
@@ -469,82 +498,32 @@ export function LineupOffice() {
           </header>
 
           <div className="lineup-summary">
-            <span><b>{counts.called}/{sheet.settings?.maxSquad || 23}</b>{copy.called}</span>
-            <span><b>{counts.xi}/11</b>{copy.xi} {draft.formation}</span>
-            <span><b>{counts.bench}/{sheet.settings?.maxBench || 9}</b>{copy.bench}</span>
-            <span><b>{Math.max(0, counts.notCalled)}</b>{copy.notCalled}</span>
-            <span><b>{counts.unavailable}</b>{copy.unavailable}</span>
-            {counts.average ? <span><b>{counts.average}</b>{copy.average}</span> : null}
+            <Kpi value={counts.called} max={counts.size} label={copy.called} />
+            <Kpi value={counts.xi} max={11} label={copy.xi} />
+            <Kpi value={counts.bench} max={Math.max(0, counts.size - 11)} label={copy.bench} />
+            <Kpi value={counts.notCalled} label={copy.notCalled} />
+            <Kpi value={counts.unavailable} label={copy.unavailable} />
           </div>
 
-          <div className="lineup-tabs" role="tablist">
-            {Object.entries(copy.tabs).map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? "on" : ""} onClick={() => setTab(key)}>{label}</button>
-            ))}
-          </div>
+          <Tabs label={copy.title} value={tab} onChange={setTab} items={Object.entries(copy.tabs).map(([id, label]) => ({ id, label }))} />
 
           {tab === "lineup" ? (
-            <div className="lineup-layout">
-              <div className="lineup-panel" style={{ padding: 16 }}>
-                <div className="lineup-bar">
-                  <Field label={copy.formation}>
-                    <SelectInput value={draft.formation} disabled={!permissions.edit} onChange={(event) => changeFormation(event.target.value)}>
-                      {(sheet.formations || []).map((item) => <option key={item.code}>{item.code}</option>)}
-                    </SelectInput>
-                  </Field>
-                  <label><input type="checkbox" checked={showOpponent} onChange={(event) => setShowOpponent(event.target.checked)} /> {copy.showOpponent}</label>
-                  <span>{saving ? copy.saving : savedAt ? `${copy.saved} ${savedAt}` : ""}</span>
-                </div>
-                {issues.length ? <p className="banner">{copy.validations}: {issues.join(" · ")}</p> : null}
-                <Pitch
-                  spots={showOpponent ? spotsOf(sheet, draft.opponentFormation) : spots}
-                  draft={draft}
-                  squad={squad}
-                  events={sheet.events}
-                  ratings={sheet.ratings}
-                  captains={captains}
-                  copy={copy}
-                  mirror={showOpponent}
-                  names={draft.opponentNames}
-                  drag={drag}
-                  onPlace={place}
-                  onBench={toBench}
-                  onOpen={setProfile}
-                  picked={picked}
-                />
-                {showOpponent ? (
-                  <Field label={copy.opponentNames}>
-                    <TextArea rows={4} value={draft.opponentNames} disabled={!permissions.edit} onChange={(event) => patch({ opponentNames: event.target.value })} />
-                  </Field>
-                ) : null}
-                <h2>{copy.bench}</h2>
-                <div className="bench-row" onDragOver={(event) => event.preventDefault()} onDrop={() => { if (drag.current?.playerId) toBench(drag.current.playerId); }}>
-                  {draft.bench.map((id) => {
-                    const player = playerById(squad, id);
-                    if (!player) return null;
-                    return <button key={id} type="button" className="bench-card" draggable onDragStart={() => { drag.current = { playerId: id }; }} onClick={() => setProfile(player)}>{face(player)}<span>#{player.jersey} {player.knownAs}</span></button>;
-                  })}
-                </div>
-                <Groups copy={copy} squad={squad} draft={draft} calls={calls} />
-              </div>
-              <SquadPanel
-                copy={copy}
-                open={squadOpen}
-                players={filtered}
-                line={line}
-                setLine={setLine}
-                query={query}
-                setQuery={setQuery}
-                availableOnly={availableOnly}
-                setAvailableOnly={setAvailableOnly}
-                draft={draft}
-                calls={calls}
-                captains={captains}
-                drag={drag}
-                onPick={(player) => setPicked(player.id === picked ? null : player.id)}
-                picked={picked}
-              />
-            </div>
+            <LineupBuilder
+              sheet={sheet}
+              draft={draft}
+              patch={patch}
+              flow={flow}
+              copy={copy}
+              locale={locale}
+              permissions={permissions}
+              executive={executive}
+              captains={captains}
+              matchId={matchId}
+              onRefresh={refresh}
+              user={user}
+              setNotice={setNotice}
+              setError={setError}
+            />
           ) : null}
 
           {tab === "callups" ? <Callups copy={copy} locale={locale} squad={squad} calls={calls} setCalls={setCalls} logistics={logistics} setLogistics={setLogistics} permissions={permissions} matchId={matchId} onRefresh={refresh} setError={setError} setNotice={setNotice} settings={sheet.settings} /> : null}
@@ -553,7 +532,7 @@ export function LineupOffice() {
           {tab === "timeline" ? <Timeline copy={copy} locale={locale} events={sheet.events} squad={squad} permissions={permissions} form={eventForm} setForm={setEventForm} matchId={matchId} onRefresh={refresh} setError={setError} /> : null}
           {tab === "history" ? <History copy={copy} locale={locale} rows={sheet.history || []} page={historyPage} setPage={setHistoryPage} size={historySize} setSize={setHistorySize} filter={historyFilter} setFilter={setHistoryFilter} canRestore={permissions.edit} onRestore={async (revision) => { try { await refresh(await send("post", `/api/lineups/${matchId}/restore/${revision}`)); } catch (err) { setError(err.message); } }} /> : null}
 
-          <div className="lineup-actions">
+          {tab !== "lineup" ? <div className="lineup-actions">
             <Button className="drawer-toggle" onClick={() => setSquadOpen((open) => !open)}>{copy.squad}</Button>
             {permissions.edit ? <Button onClick={() => saveDraft()} disabled={saving}>{copy.save}</Button> : null}
             {permissions.submit ? <Button variant="primary" disabled={issues.length > 0} title={issues.join(", ")} onClick={() => act("submit")}>{copy.submit}</Button> : null}
@@ -563,8 +542,8 @@ export function LineupOffice() {
             {permissions.publish ? <Button variant="primary" onClick={() => { if (lineup?.status !== "APPROVED" && executive) { setNote({ kind: "publish" }); setComment(""); } else act("publish"); }}>{copy.publish}</Button> : null}
             {permissions.unlock ? <Button onClick={() => { setNote({ kind: "unlock" }); setComment(""); }}>{copy.unlock}</Button> : null}
             {permissions.graphic ? <Button onClick={() => download(`/api/lineups/${matchId}/graphic`, "Viking_FC_Matchday.png")}>{copy.graphic}</Button> : null}
-            {permissions.graphic || permissions.calls ? <Button onClick={() => download(`/api/lineups/${matchId}/pdf`, "Viking_FC_Matchsheet.pdf")}>{copy.sheet}</Button> : null}
-          </div>
+            {permissions.graphic || permissions.calls ? <Button onClick={() => download(`/api/lineups/${matchId}/pdf?lang=${locale}`, "Viking_FC_Matchsheet.pdf")}>{copy.sheet}</Button> : null}
+          </div> : null}
         </>
       ) : null}
 
@@ -756,6 +735,8 @@ function Callups({ copy, locale, squad, calls, setCalls, logistics, setLogistics
         {permissions.calls ? <Button onClick={() => { const next = { ...calls }; squad.forEach((player) => { if (player.availability === "AVAILABLE") next[player.id] = { ...(next[player.id] || {}), playerId: player.id, called: true, response: "PENDING" }; }); setCalls(next); }}>{copy.callAll}</Button> : null}
         {permissions.calls ? <Button onClick={() => { const next = {}; squad.forEach((player) => { next[player.id] = { playerId: player.id, called: false, response: "PENDING" }; }); setCalls(next); }}>{copy.clear}</Button> : null}
         {permissions.calls ? <Button variant="primary" onClick={() => save()}>{copy.save}</Button> : null}
+        {permissions.calls ? <Button onClick={() => save({ notifyStaff: true })}>Save and notify</Button> : null}
+        {permissions.calls ? <Button variant="primary" onClick={() => post(`/api/convocations/${matchId}/confirm-and-send`)}>Confirm and send</Button> : null}
         {permissions.calls ? <Button onClick={() => post(`/api/convocations/${matchId}/send`)}>{copy.send}</Button> : null}
         {permissions.calls ? <Button onClick={() => post(`/api/convocations/${matchId}/remind`)}>{copy.remind}</Button> : null}
         {permissions.calls ? <Button onClick={() => post(`/api/convocations/${matchId}/not-selected`)}>{copy.omitted}</Button> : null}
@@ -926,40 +907,113 @@ function Timeline({ copy, locale, events, squad, permissions, form, setForm, mat
   );
 }
 
-function History({ copy, locale, rows, page, setPage, size, setSize, filter, setFilter, canRestore, onRestore }) {
-  const filtered = rows.filter((row) => filter === "Any" || row.status === filter || row.action === filter);
-  const pages = Math.max(1, Math.ceil(filtered.length / size));
-  const safe = Math.min(page, pages - 1);
-  const slice = filtered.slice(safe * size, safe * size + size);
+function Kpi({ value, max, label }) {
+  const shown = useCount(value);
+  const tone = max == null ? "neutral" : value === max ? "complete" : value > max ? "over" : "short";
+  const width = max ? Math.min(100, Math.round((Number(value) / max) * 100)) : 0;
   return (
-    <div className="lineup-panel" style={{ padding: 16 }}>
-      <SelectInput aria-label={copy.filter} value={filter} onChange={(event) => { setFilter(event.target.value); setPage(0); }}>
-        <option value="Any">{copy.any}</option>
-        {STEP_KEYS.map((key) => <option key={key} value={key}>{copy.statuses[key]}</option>)}
-      </SelectInput>
+    <article className={`stat-card ${tone}`}>
+      <b>{max == null ? shown : `${shown}/${max}`}</b>
+      <span>{label}</span>
+      {max != null ? <i style={{ width: `${width}%` }} /> : null}
+    </article>
+  );
+}
+
+function useCount(value) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const target = Number(value) || 0;
+    if (reduced()) {
+      setN(target);
+      return undefined;
+    }
+    const start = performance.now();
+    let frame = 0;
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / 480);
+      setN(Math.round(target * t));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return n;
+}
+
+function History({ copy, locale, rows, page, setPage, size, setSize, filter, setFilter, canRestore, onRestore }) {
+  const [mode, setMode] = useState("versions");
+  const [compare, setCompare] = useState(null);
+  const [restore, setRestore] = useState(null);
+  const versions = rows.filter((row) => row.kind === "version" || row.players);
+  const activity = rows.filter((row) => row.kind === "activity" || (row.action && !row.players));
+  const source = (mode === "versions" ? versions : mode === "activity" ? activity : rows)
+    .filter((row) => filter === "Any" || row.status === filter || row.action === filter);
+  const pages = Math.max(1, Math.ceil(source.length / size));
+  const safe = Math.min(page, pages - 1);
+  const slice = source.slice(safe * size, safe * size + size);
+  const actionStatus = { submit: "SUBMITTED", approve: "APPROVED", publish: "PUBLISHED", unlock: "LOCKED", reject: "CHANGES_REQUESTED", changes: "CHANGES_REQUESTED" };
+  return (
+    <div className="lineup-panel history-panel">
+      <header className="panel-head">
+        <div className="view-switch" role="tablist">
+          {[["versions", copy.versions || "Versions"], ["activity", copy.activity || "Activity"], ["all", copy.any]].map(([id, label]) => (
+            <button key={id} type="button" className={mode === id ? "on" : ""} onClick={() => { setMode(id); setPage(0); }}>{label}</button>
+          ))}
+        </div>
+        <SelectInput aria-label={copy.filter} value={filter} onChange={(event) => { setFilter(event.target.value); setPage(0); }}>
+          <option value="Any">{copy.any}</option>
+          {STEP_KEYS.map((key) => <option key={key} value={key}>{copy.statuses[key]}</option>)}
+        </SelectInput>
+      </header>
       {!slice.length ? <p>{copy.historyEmpty}</p> : null}
-      <table className="rating-table">
-        <tbody>
-          {slice.map((row, index) => {
-            const previous = filtered[safe * size + index + 1];
-            const diff = row.players && previous?.players ? versionDiff(row, previous) : null;
-            return (
-              <tr key={`${row.revision}-${row.action || row.status}-${row.at}`}>
-                <td>{row.revision ? `v${row.revision}` : ""} {copy.statuses[row.status] || row.action}</td>
-                <td>{when(locale, row.at)} · {row.by || "—"}</td>
-                <td>{row.comment || "—"}</td>
-                <td>{diff ? `${copy.added}: ${diff.added.join(", ") || "—"} · ${copy.removed}: ${diff.removed.join(", ") || "—"} · ${copy.moved}: ${diff.moved.join(", ") || "—"}` : ""}</td>
-                <td>{canRestore && row.revision && row.players ? <Button onClick={() => onRestore(row.revision)}>{copy.restore}</Button> : null}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <ol className="history-list">
+        {slice.map((row) => {
+          const diff = row.diff || {};
+          return (
+            <li key={`${row.kind}-${row.revision}-${row.action || row.status}-${row.at}`} className={row.current ? "is-current" : ""}>
+              <div>
+                {row.revision ? <Badge tone={row.current ? "bad" : "neutral"}>v{row.revision}</Badge> : null}
+                <Badge>{copy.statuses[row.status] || copy.statuses[actionStatus[row.action]] || row.action}</Badge>
+                {row.current ? <Badge tone="bad">{copy.current || "Current"}</Badge> : null}
+                <b>{row.by || "—"}</b>
+                <time>{when(locale, row.at)}</time>
+                <p>{row.comment || "—"}</p>
+                {row.formationFrom ? <span className="diff-chip">{row.formationFrom} → {row.formation}</span> : null}
+                {row.squadFrom ? <span className="diff-chip">{row.squadFrom} → {row.squadSize}</span> : null}
+                {(diff.added || []).slice(0, 4).map((player) => <span key={player.playerId} className="diff-chip good">+ {player.name}</span>)}
+                {(diff.removed || []).slice(0, 4).map((player) => <span key={player.playerId} className="diff-chip bad">− {player.name}</span>)}
+                {(diff.moved || []).slice(0, 4).map((player) => <span key={player.playerId} className="diff-chip warn">{player.from} → {player.to}</span>)}
+              </div>
+              <div className="row-actions">
+                {row.players ? <Button onClick={() => setCompare(row)}>{copy.compare || "Compare"}</Button> : null}
+                {canRestore && row.revision && row.players ? <Button onClick={() => setRestore(row)}>{copy.restore}</Button> : null}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
       <div className="pager">
         <Button disabled={safe === 0} onClick={() => setPage(safe - 1)}>{copy.prev}</Button>
-        <span>{copy.showing} {filtered.length ? safe * size + 1 : 0}-{Math.min(filtered.length, safe * size + size)} {copy.of} {filtered.length}</span>
+        <span>{copy.showing} {source.length ? safe * size + 1 : 0}-{Math.min(source.length, safe * size + size)} {copy.of} {source.length}</span>
+        <SelectInput aria-label={copy.showing} value={size} onChange={(event) => { setSize(Number(event.target.value)); setPage(0); }}>
+          {[8, 12, 20].map((count) => <option key={count} value={count}>{count}</option>)}
+        </SelectInput>
         <Button disabled={safe >= pages - 1} onClick={() => setPage(safe + 1)}>{copy.next}</Button>
       </div>
+      {compare ? (
+        <Modal title={`v${compare.revision}`} onClose={() => setCompare(null)} closeLabel={copy.cancel} size="lg">
+          <div className="compare-grid">
+            {(compare.players || []).map((player) => <span key={player.playerId} className="mini-chip">{player.slot} · {player.name}</span>)}
+          </div>
+        </Modal>
+      ) : null}
+      {restore ? (
+        <Modal title={copy.restore} onClose={() => setRestore(null)} closeLabel={copy.cancel}
+          footer={<><Button onClick={() => setRestore(null)}>{copy.cancel}</Button><Button variant="primary" onClick={() => { onRestore(restore.revision); setRestore(null); }}>{copy.restore}</Button></>}>
+          <p>v{restore.revision} · {when(locale, restore.at)}</p>
+        </Modal>
+      ) : null}
     </div>
   );
 }

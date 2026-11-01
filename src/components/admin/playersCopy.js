@@ -11,6 +11,9 @@ export const COPY = {
     prev: "Previous", next: "Next", rows: "Rows per page", showing: "Showing", of: "of",
     empty: "No players yet. Add the first player", retry: "Retry", addLink: "Add",
     view: "View", edit: "Edit", message: "Official message", captain: "Captain", archive: "Archive", restore: "Restore", erase: "Delete",
+    moveFormer: "Move to former players", exitReason: "Exit reason", exitDate: "Exit date", exitNote: "Note",
+    exitTransferred: "Transferred", exitReleased: "Released", exitRetired: "Retired", exitContract: "Contract ended", exitLoan: "Loan ended", exitOther: "Other",
+    lineupBlocked: "This player is in a published lineup for an upcoming match",
     noEmail: "Add an email before sending", sent: "Message queued", saved: "Player saved",
     squad: "Squad", avg: "Average age", range: "Youngest / oldest", expiringKpi: "Contracts expiring", complete: "Profiles complete",
     close: "Close", save: "Save", cancel: "Cancel", confirm: "Confirm",
@@ -35,7 +38,11 @@ export const COPY = {
     templates: "Templates", copyMe: "Send me a copy", addEmail: "Add email",
     start: "Start", end: "End", socialFund: "Social fund", exempt: "Social fund exemption",
     bonuses: "Bonuses", addBonus: "Add bonus", maxBonus: "Maximum 3 bonuses per player",
-    bonusName: "Bonus name", advanceHigh: "Advance is above the net 3-month pay", incomplete: "Incomplete",
+    bonusName: "Bonus name", amountRwf: "Amount (RWF)", remove: "Remove",
+    advanceHigh: "The advance is higher than the net pay for the first 3 months. Owed by the person:",
+    socialShort: "Monthly pay of {monthly} gives {three} for 3 months, which is less than the social fund of {fund}. Increase the salary, mark the person as social-fund exempt, or change the social fund in Settings.",
+    missingLine: "Still needed",
+    incomplete: "Incomplete",
   },
   fr: {
     title: "Joueurs", sub: "L'effectif enregistré pour cette saison", count: "joueurs",
@@ -49,6 +56,9 @@ export const COPY = {
     prev: "Précédent", next: "Suivant", rows: "Lignes", showing: "Affichage", of: "sur",
     empty: "Aucun joueur. Ajoutez le premier.", retry: "Réessayer", addLink: "Ajouter",
     view: "Voir", edit: "Modifier", message: "Message officiel", captain: "Capitaine", archive: "Archiver", restore: "Restaurer", erase: "Supprimer",
+    moveFormer: "Passer aux anciens joueurs", exitReason: "Motif de départ", exitDate: "Date de départ", exitNote: "Note",
+    exitTransferred: "Transféré", exitReleased: "Libéré", exitRetired: "Retraite", exitContract: "Fin de contrat", exitLoan: "Fin de prêt", exitOther: "Autre",
+    lineupBlocked: "Ce joueur est dans une composition publiée pour un match à venir",
     noEmail: "Ajoutez un email avant d'envoyer", sent: "Message mis en file", saved: "Joueur enregistré",
     squad: "Effectif", avg: "Âge moyen", range: "Plus jeune / plus âgé", expiringKpi: "Contrats qui expirent", complete: "Profils complets",
     close: "Fermer", save: "Enregistrer", cancel: "Annuler", confirm: "Confirmer",
@@ -73,7 +83,11 @@ export const COPY = {
     templates: "Modèles", copyMe: "M'envoyer une copie", addEmail: "Ajouter un email",
     start: "Début", end: "Fin", socialFund: "Fonds social", exempt: "Exonération du fonds social",
     bonuses: "Primes", addBonus: "Ajouter une prime", maxBonus: "Maximum 3 primes par joueur",
-    bonusName: "Nom de la prime", advanceHigh: "L'avance dépasse le net des 3 mois", incomplete: "Incomplet",
+    bonusName: "Nom de la prime", amountRwf: "Montant (RWF)", remove: "Retirer",
+    advanceHigh: "L'avance dépasse le net des 3 premiers mois. Dû par la personne :",
+    socialShort: "Un salaire mensuel de {monthly} donne {three} pour 3 mois, moins que le fonds social de {fund}. Augmentez le salaire, exonérez la personne, ou changez le fonds social dans Réglages.",
+    missingLine: "Il manque",
+    incomplete: "Incomplet",
   },
   rw: {
     title: "Abakinnyi", sub: "Ikipe yanditse muri iyi sezon", count: "abakinnyi",
@@ -87,6 +101,9 @@ export const COPY = {
     prev: "Ibanze", next: "Ikurikira", rows: "Imirongo", showing: "Byerekana", of: "kuri",
     empty: "Nta mukinnyi. Ongeraho uwa mbere.", retry: "Ongera ugerageze", addLink: "Ongeraho",
     view: "Reba", edit: "Hindura", message: "Ubutumwa", captain: "Kapiteni", archive: "Bika", restore: "Garura", erase: "Siba",
+    moveFormer: "Jya mu bakinnyi ba kera", exitReason: "Impamvu yo kuva", exitDate: "Itariki yo kuva", exitNote: "Icyitonderwa",
+    exitTransferred: "Yimuwe", exitReleased: "Yarekuwe", exitRetired: "Yasezeye", exitContract: "Amasezerano yarangiye", exitLoan: "Inguzanyo yarangiye", exitOther: "Ikindi",
+    lineupBlocked: "Uyu mukinnyi ari mu rutonde rwasohotse rw'umukino utaragera",
     noEmail: "Shyiraho imeri mbere yo kohereza", sent: "Ubutumwa bwatanzwe", saved: "Umukinnyi yabitswe",
     squad: "Ikipe", avg: "Imyaka iri hagati", range: "Muto / mukuru", expiringKpi: "Amasezerano arangiye", complete: "Umwirondoro uruzuye",
     close: "Funga", save: "Bika", cancel: "Hagarika", confirm: "Emeza",
@@ -111,7 +128,11 @@ export const COPY = {
     templates: "Inyandiko", copyMe: "Ohereza kopi kuri njye", addEmail: "Ongeraho imeri",
     start: "Itangira", end: "Irangira", socialFund: "Ikigega rusange", exempt: "Utwikiriwe ikigega rusange",
     bonuses: "Amafaranga y'ibikenewe", addBonus: "Ongeraho prime", maxBonus: "Prime 3 gusa kuri buri mukinnyi",
-    bonusName: "Izina rya prime", advanceHigh: "Avansi irenze igihembwe cy'amezi 3", incomplete: "Ntabwo byuzuye",
+    bonusName: "Izina rya prime", amountRwf: "Amafaranga (RWF)", remove: "Kuraho",
+    advanceHigh: "Avansi irenze umushahara w'amezi 3. Umuntu yihariye:",
+    socialShort: "Umushahara w'ukwezi {monthly} utanga {three} mu mezi 3, munsi y'ikigega {fund}. Wongere umushahara, cyangwa uhagarike ikigega.",
+    missingLine: "Birasigaye",
+    incomplete: "Ntabwo byuzuye",
   },
 };
 
@@ -140,6 +161,18 @@ export const RANKS = [
   ["THIRD_CAPTAIN", "3C"],
   ["FOURTH_CAPTAIN", "4C"],
 ];
+
+export const BONUS_LABEL = {
+  GOAL: { en: "Goal", fr: "But", rw: "Igitego" },
+  ASSIST: { en: "Assist", fr: "Passe décisive", rw: "Ubufasha" },
+  APPEARANCE: { en: "Appearance", fr: "Apparition", rw: "Kwitabira" },
+  STARTING_XI: { en: "Starting XI", fr: "Onze de départ", rw: "Abarangirije" },
+  MATCH_WIN: { en: "Win", fr: "Victoire", rw: "Intsinzi" },
+  MATCH_DRAW: { en: "Draw", fr: "Nul", rw: "Umuhigo" },
+  CLEAN_SHEET: { en: "Clean sheet", fr: "Cage inviolée", rw: "Nta gitego" },
+  MAN_OF_THE_MATCH: { en: "Man of the match", fr: "Homme du match", rw: "Umukinnyi w'umunsi" },
+  CUSTOM: { en: "Other", fr: "Autre", rw: "Ikindi" },
+};
 
 export function label(map, key, locale) {
   return map[key]?.[locale] || map[key]?.en || key || "";

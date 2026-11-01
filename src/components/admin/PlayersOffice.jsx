@@ -61,7 +61,12 @@ export function PlayersOffice() {
       else next.set(key, String(value));
     }
     if (!("page" in patch)) next.set("page", "0");
-    router.replace(`/admin/players?${next.toString()}`);
+    const main = document.querySelector(".admin-main");
+    const top = main ? main.scrollTop : 0;
+    router.replace(`/admin/players?${next.toString()}`, { scroll: false });
+    const hold = () => { if (main) main.scrollTop = top; };
+    requestAnimationFrame(hold);
+    window.setTimeout(hold, 60);
   }
 
   useEffect(() => { setDraft(q); }, [q]);
@@ -105,8 +110,8 @@ export function PlayersOffice() {
     return undefined;
   }, [picker]);
 
-  async function archive(row, hard) {
-    await api.delete(`/api/players/${row.id}`, { params: { hard } });
+  async function archive(row, body) {
+    await api.post(`/api/players/${row.id}/former`, body);
     setConfirm(null);
     load();
   }
@@ -148,12 +153,12 @@ export function PlayersOffice() {
     load();
   }
 
-  async function exportCsv() {
-    const response = await api.get("/api/players/export", { responseType: "blob" });
+  async function exportFile(format) {
+    const response = await api.get("/api/players/export", { params: { format, lang: locale }, responseType: "blob" });
     const url = URL.createObjectURL(response.data);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "viking-fc-players.csv";
+    link.download = `viking-fc-players.${format === "pdf" ? "pdf" : format === "xlsx" ? "xlsx" : "csv"}`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -167,7 +172,12 @@ export function PlayersOffice() {
         </div>
         <div className="squad-head-actions">
           {canCreate ? <Button variant="primary" onClick={() => setForm({ player: null, step: 0 })}>+ {copy.add}</Button> : null}
-          <Button onClick={exportCsv}>{copy.export}</Button>
+          <select className="vfc-control" aria-label={copy.export} defaultValue="" onChange={(event) => { if (event.target.value) { exportFile(event.target.value); event.target.value = ""; } }}>
+            <option value="">{copy.export}</option>
+            <option value="xlsx">Excel</option>
+            <option value="pdf">PDF</option>
+            <option value="csv">CSV</option>
+          </select>
           {canCreate ? <Button onClick={() => setImporter(true)}>Import</Button> : null}
         </div>
       </header>
@@ -305,15 +315,15 @@ export function PlayersOffice() {
               {[8, 16, 25, 50].map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
           </label>
-          <button type="button" disabled={page === 0} onClick={() => setParam({ page: page - 1 })}>{copy.prev}</button>
+          <button type="button" disabled={page === 0} onMouseDown={(event) => event.preventDefault()} onClick={() => setParam({ page: page - 1 })}>{copy.prev}</button>
           <PageButtons page={page} pages={pages} onPick={(value) => setParam({ page: value })} />
-          <button type="button" disabled={page + 1 >= pages} onClick={() => setParam({ page: page + 1 })}>{copy.next}</button>
+          <button type="button" disabled={page + 1 >= pages} onMouseDown={(event) => event.preventDefault()} onClick={() => setParam({ page: page + 1 })}>{copy.next}</button>
         </footer>
       ) : null}
       {form ? <PlayerForm copy={copy} locale={locale} executive={executive} player={form.player} initialStep={form.step || 0} onClose={() => setForm(null)} onSaved={() => { setForm(null); toast(copy.saved); load(); }} /> : null}
       {viewer ? <ProfileModal row={viewer} copy={copy} locale={locale} executive={executive} onClose={() => setViewer(null)} onEdit={(row) => { setViewer(null); setForm({ player: row, step: 0 }); }} onMail={(row) => { setViewer(null); setMail(row); }} onCaptain={(row) => { setViewer(null); setPicker({ playerId: row.id }); }} onArchive={(row) => { setViewer(null); setConfirm(row); }} /> : null}
       {mail ? <MessageModal player={mail} copy={copy} locale={locale} userEmail={user?.email} onClose={() => setMail(null)} onSent={() => { setMail(null); toast(copy.sent); }} /> : null}
-      {confirm ? <ConfirmModal row={confirm} copy={copy} executive={executive} onClose={() => setConfirm(null)} onArchive={archive} /> : null}
+      {confirm ? <ConfirmModal row={confirm} copy={copy} onClose={() => setConfirm(null)} onArchive={archive} /> : null}
       {picker ? <CaptainModal picker={picker} captains={captains} squad={squad.length ? squad : rows} copy={copy} onClose={() => setPicker(null)} onAssign={(rank, playerId) => assign(rank, playerId)} onRemove={clearRank} /> : null}
       {importer ? <ImportWizard copy={copy} onClose={() => setImporter(false)} onDone={load} /> : null}
       {notice ? <p className="toast" role="status">{notice}</p> : null}
@@ -332,7 +342,7 @@ function Actions({ row, copy, canEdit, canCaptain, archived, onView, onEdit, onM
       {canEdit ? <IconButton label={copy.edit} onClick={() => onEdit(row, 0)}><Pencil size={16} /></IconButton> : null}
       <IconButton label={row.email ? copy.message : copy.noEmail} disabled={!row.email} onClick={() => onMail(row)}><Mail size={16} /></IconButton>
       {canCaptain && !archived ? <IconButton label={copy.captain} onClick={() => onCaptain(row)}><Shield size={16} /></IconButton> : null}
-      {canEdit && !archived ? <IconButton label={copy.archive} onClick={() => onArchive(row)}><Trash2 size={16} /></IconButton> : null}
+      {canEdit && !archived ? <IconButton label={copy.moveFormer} onClick={() => onArchive(row)}><Trash2 size={16} /></IconButton> : null}
       {canEdit && archived ? <Button size="sm" onClick={() => onRestore(row)}>{copy.restore}</Button> : null}
     </div>
   );

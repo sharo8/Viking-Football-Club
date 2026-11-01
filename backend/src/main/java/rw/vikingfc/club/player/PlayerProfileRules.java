@@ -1,5 +1,7 @@
 package rw.vikingfc.club.player;
 
+import rw.vikingfc.club.common.RwandaPhone;
+
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
@@ -58,8 +60,12 @@ public final class PlayerProfileRules {
             issues.add(issue("email", "EMAIL", "Enter a valid email", 1));
         }
         String phone = text(body.get("phone"));
-        if (!phone.isBlank() && !phone.matches("^\\+?[0-9][0-9\\s]{7,16}$")) {
-            issues.add(issue("phone", "PHONE", "Use a valid phone number", 1));
+        if (!phone.isBlank() && !RwandaPhone.valid(RwandaPhone.normalize(phone))) {
+            issues.add(issue("phone", "PHONE", "Use a Rwanda mobile: +250 and 9 digits starting with 72, 73, 78 or 79.", 1));
+        }
+        String emergency = text(body.get("emergencyPhone"));
+        if (!emergency.isBlank() && !RwandaPhone.valid(RwandaPhone.normalize(emergency))) {
+            issues.add(issue("emergencyPhone", "PHONE", "Use a Rwanda mobile: +250 and 9 digits starting with 72, 73, 78 or 79.", 1));
         }
 
         if (creating && executive) {

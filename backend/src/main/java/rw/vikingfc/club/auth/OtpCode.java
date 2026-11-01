@@ -25,6 +25,9 @@ public class OtpCode extends BaseEntity {
     private User user;
     @Column(nullable = false, length = 40)
     private String purpose;
+
+    @Column(name = "challenge_id", length = 64)
+    private String challengeId;
     @Column(name = "code_hash", nullable = false, length = 128)
     private String codeHash;
     @Column(name = "expires_at", nullable = false)

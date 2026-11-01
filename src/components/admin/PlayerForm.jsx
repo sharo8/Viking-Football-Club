@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { api, getData } from "@/services/api";
-import { Avatar, Button, Field, Modal, SelectInput, TextInput } from "@/ui/kit";
-import { POSITION, STATUS, label, money } from "./playersCopy";
+import { Avatar, Button, Field, Modal, PhoneInput, SelectInput, TextInput } from "@/ui/kit";
+import { BONUS_LABEL, POSITION, STATUS, label, money } from "./playersCopy";
 import { BONUS_TYPES, paySummary, profileIssues } from "./playerRules";
+import { TranslatedName } from "./TranslatedName";
 
 const EMPTY = {
   fullName: "", knownAs: "", jersey: "", position: "FORWARD", dateOfBirth: "", nationality: "Rwanda",
   foot: "Right", heightCm: "", weightKg: "", status: "ACTIVE", phone: "", email: "", preferredLanguage: "en",
   address: "", emergencyName: "", emergencyRelationship: "", emergencyPhone: "", emergencyEmail: "",
-  seasonalPay: "", advance: "0", releaseClause: "", marketValue: "", sfExempt: false, socialFund: "12000",
+  seasonalPay: "", advance: "0", releaseClause: "", marketValue: "", sfExempt: false, socialFund: "",
   contractStart: "", contractEnd: "", confirmDuplicate: false,
 };
 
@@ -42,12 +43,19 @@ export function PlayerForm({ copy, locale, executive, player, initialStep = 0, o
   const [baseline] = useState(() => JSON.stringify({ ...EMPTY, ...(player || {}) }));
   const creating = !player?.id;
   const steps = executive ? [copy.step1, copy.step2, copy.step3] : [copy.step1, copy.step2];
-  const problems = profileIssues(form, { creating, executive, hasPhoto: Boolean(photoFile || photoPreview) });
-  const blocking = creating ? problems : problems.filter((item) => item.code !== "REQUIRED");
-  const missing = profileIssues(form, { creating: true, executive, hasPhoto: Boolean(photoFile || photoPreview) }).filter((item) => item.code === "REQUIRED");
+  const problems = profileIssues(form, { creating, executive, hasPhoto: Boolean(photoFile || photoPreview), locale });
+  const blocking = problems.filter((item) => creating || item.code !== "REQUIRED");
+  const missing = profileIssues(form, { creating: true, executive, hasPhoto: Boolean(photoFile || photoPreview), locale }).filter((item) => item.code === "REQUIRED");
   const byStep = [0, 1, 2].map((index) => missing.filter((item) => item.step === index).length);
   const pay = paySummary(form);
   const age = useMemo(() => yearsOf(form.dateOfBirth), [form.dateOfBirth]);
+
+  useEffect(() => {
+    if (!executive || player?.id) return;
+    getData("/api/settings").then((view) => {
+      if (view?.playerSocialFund != null) set("socialFund", String(view.playerSocialFund));
+    }).catch(() => {});
+  }, [executive, player?.id]);
 
   useEffect(() => {
     getData("/api/players/directory", { size: 100 }).then((page) => {
@@ -152,7 +160,10 @@ export function PlayerForm({ copy, locale, executive, player, initialStep = 0, o
           <div className="vfc-foot-right">
             {step > 0 ? <Button variant="secondary" onClick={() => setStep((value) => value - 1)}>{copy.back}</Button> : null}
             {step < steps.length - 1 ? <Button variant="primary" onClick={() => setStep((value) => value + 1)}>{copy.nextStep}</Button> : (
-              <Button variant="primary" loading={busy} aria-disabled={creating && (blocking.length > 0 || taken?.taken)} title={missing.length ? `${missing.length} fields missing` : ""} onClick={() => { if (creating && (blocking.length || taken?.taken)) { setErrors(localErrors()); setStep((blocking[0] || { step: 0 }).step); return; } save(); }}>{copy.savePlayer}</Button>
+              <>
+                {creating && missing.length ? <span className="vfc-error">{copy.missingLine}: {missing.map((item) => item.field).join(", ")}</span> : null}
+                <Button variant="primary" loading={busy} {...(creating && (blocking.length > 0 || taken?.taken) ? { disabled: true } : {})} onClick={() => { if (creating && (blocking.length || taken?.taken)) { setErrors(localErrors()); setStep((blocking[0] || { step: 0 }).step); return; } save(); }}>{copy.savePlayer}</Button>
+              </>
             )}
           </div>
         </>
@@ -239,7 +250,7 @@ export function PlayerForm({ copy, locale, executive, player, initialStep = 0, o
             ) : null}
             {step === 1 ? (
               <>
-                <Field label={copy.phone} error={errors.phone}><TextInput value={form.phone || ""} placeholder="+250" onChange={(event) => set("phone", event.target.value)} /></Field>
+                <Field label={copy.phone} error={errors.phone}><PhoneInput value={form.phone || ""} aria-label={copy.phone} onChange={(value) => set("phone", value)} /></Field>
                 <Field label={copy.email} error={errors.email}><TextInput value={form.email || ""} onChange={(event) => set("email", event.target.value)} /></Field>
                 <Field label={copy.language}>
                   <div className="vfc-seg">
@@ -252,7 +263,7 @@ export function PlayerForm({ copy, locale, executive, player, initialStep = 0, o
                 <p className="vfc-section">{copy.emergency}</p>
                 <Field label={copy.name}><TextInput value={form.emergencyName || ""} onChange={(event) => set("emergencyName", event.target.value)} /></Field>
                 <Field label={copy.relationship}><TextInput value={form.emergencyRelationship || ""} onChange={(event) => set("emergencyRelationship", event.target.value)} /></Field>
-                <Field label={copy.phone}><TextInput value={form.emergencyPhone || ""} onChange={(event) => set("emergencyPhone", event.target.value)} /></Field>
+                <Field label={copy.phone} error={errors.emergencyPhone}><PhoneInput value={form.emergencyPhone || ""} aria-label={copy.phone} onChange={(value) => set("emergencyPhone", value)} /></Field>
                 <Field label={copy.email}><TextInput value={form.emergencyEmail || ""} onChange={(event) => set("emergencyEmail", event.target.value)} /></Field>
               </>
             ) : null}
@@ -270,22 +281,29 @@ export function PlayerForm({ copy, locale, executive, player, initialStep = 0, o
                   <article className="vfc-tile span-2">
                     <small>{copy.monthly}</small>
                     <strong>{money(pay.monthly)}</strong>
-                    <p>3 months {money(pay.net3)} · owed {money(pay.owed)} · envelope {money(pay.envelope)}</p>
-                    {form.seasonalPay !== "" && pay.owed > 0 ? <em className="vfc-error">{copy.advanceHigh}</em> : null}
+                    <p>{copy.monthly} {money(pay.monthly)} · 3 {money(pay.three)} · {copy.socialFund} {money(pay.social1)} · {money(pay.net3)} · {money(pay.envelope)}</p>
+                    {pay.shortfall ? <em className="vfc-error">{copy.socialShort.replace("{monthly}", money(pay.monthly)).replace("{three}", money(pay.three)).replace("{fund}", money(pay.social1))}</em> : null}
+                    {!pay.shortfall && form.seasonalPay !== "" && pay.owed > 0 ? <em className="vfc-error">{copy.advanceHigh} {money(pay.owed)}</em> : null}
                   </article>
                   <div className="span-2">
                     <p className="vfc-section">{copy.bonuses}</p>
                     {bonuses.map((bonus, index) => (
                       <div key={index} className="vfc-grid">
                         <SelectInput value={bonus.type} onChange={(event) => setBonuses((rows) => rows.map((item, itemIndex) => itemIndex === index ? { ...item, type: event.target.value } : item))}>
-                          {BONUS_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
+                          {BONUS_TYPES.map((type) => <option key={type} value={type}>{label(BONUS_LABEL, type, locale)}</option>)}
                         </SelectInput>
-                        {bonus.type === "CUSTOM" ? <TextInput placeholder={copy.bonusName} value={bonus.customName || ""} onChange={(event) => setBonuses((rows) => rows.map((item, itemIndex) => itemIndex === index ? { ...item, customName: event.target.value } : item))} /> : null}
-                        <TextInput inputMode="numeric" value={bonus.amount} onChange={(event) => setBonuses((rows) => rows.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} />
-                        <Button size="sm" variant="danger" onClick={() => setBonuses((rows) => rows.filter((_, itemIndex) => itemIndex !== index))}>Delete</Button>
+                        {bonus.type === "CUSTOM" ? (
+                          <TranslatedName
+                            value={{ name: bonus.customName || "", nameFr: bonus.nameFr || "", nameRw: bonus.nameRw || "", sourceLang: bonus.sourceLang || locale }}
+                            onChange={(next) => setBonuses((rows) => rows.map((item, itemIndex) => itemIndex === index ? { ...item, customName: next.name, nameFr: next.nameFr, nameRw: next.nameRw, sourceLang: next.sourceLang || locale } : item))}
+                            onError={setNotice}
+                          />
+                        ) : null}
+                        <Field label={copy.amountRwf}><TextInput inputMode="numeric" value={bonus.amount} onChange={(event) => setBonuses((rows) => rows.map((item, itemIndex) => itemIndex === index ? { ...item, amount: event.target.value } : item))} /></Field>
+                        <Button size="sm" variant="danger" onClick={() => setBonuses((rows) => rows.filter((_, itemIndex) => itemIndex !== index))}>{copy.remove}</Button>
                       </div>
                     ))}
-                    <Button disabled={bonuses.length >= 3} onClick={() => setBonuses((rows) => [...rows, { type: "GOAL", amount: "", active: true }])}>{bonuses.length >= 3 ? copy.maxBonus : copy.addBonus}</Button>
+                    <Button {...(bonuses.length >= 3 ? { disabled: true } : {})} onClick={() => setBonuses((rows) => [...rows, { type: "GOAL", amount: "", active: true }])}>{bonuses.length >= 3 ? copy.maxBonus : copy.addBonus}</Button>
                   </div>
                 </>
               ) : <p>{copy.locked}</p>

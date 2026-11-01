@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,8 +15,10 @@ import rw.vikingfc.club.common.api.ApiResponse;
 import rw.vikingfc.club.finance.PayMethod;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/fines")
@@ -24,6 +27,35 @@ import java.util.Map;
 public class FineController {
 
     private final FineService fineService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('EXECUTIVE','ASSISTANT_MANAGER','HEAD_COACH','ASSISTANT_COACH','GOALKEEPER_COACH')")
+    public ApiResponse<List<Map<String, Object>>> list(@RequestParam(required = false) Long playerId,
+                                                       @RequestParam(required = false) String players,
+                                                       @RequestParam(defaultValue = "all") String preset,
+                                                       @RequestParam(required = false) String status,
+                                                       @RequestParam(required = false) String from,
+                                                       @RequestParam(required = false) String to) {
+        LocalDate today = LocalDate.now();
+        LocalDate start = switch (preset == null ? "all" : preset) {
+            case "today" -> today;
+            case "week" -> today.minusDays(today.getDayOfWeek().getValue() - 1L);
+            case "month" -> today.withDayOfMonth(1);
+            case "year" -> today.withDayOfYear(1);
+            case "custom" -> from == null || from.isBlank() ? null : LocalDate.parse(from);
+            default -> null;
+        };
+        LocalDate end = "custom".equals(preset) && to != null && !to.isBlank() ? LocalDate.parse(to) : "all".equals(preset) ? null : today;
+        Set<String> ids = players == null || players.isBlank() ? Set.of() : Set.of(players.split(","));
+        List<Map<String, Object>> rows = fineService.ledger().stream().filter(row -> {
+            if (playerId != null && !playerId.equals(row.get("playerId"))) return false;
+            if (!ids.isEmpty() && !ids.contains(String.valueOf(row.get("playerId")))) return false;
+            if (status != null && !status.isBlank() && !status.equals(String.valueOf(row.get("status")))) return false;
+            if (start != null && row.get("date") != null && LocalDate.parse(String.valueOf(row.get("date"))).isBefore(start)) return false;
+            return end == null || row.get("date") == null || !LocalDate.parse(String.valueOf(row.get("date"))).isAfter(end);
+        }).toList();
+        return ApiResponse.ok("Fines", rows);
+    }
 
     @GetMapping("/summary")
     @PreAuthorize("hasAnyRole('EXECUTIVE','ASSISTANT_MANAGER','HEAD_COACH','ASSISTANT_COACH','GOALKEEPER_COACH')")

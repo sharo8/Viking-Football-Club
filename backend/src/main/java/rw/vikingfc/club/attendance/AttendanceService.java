@@ -41,6 +41,9 @@ public class AttendanceService {
     public List<Map<String, Object>> saveBulk(Long sessionId, List<AttendanceDtos.Mark> marks) {
         TrainingSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> NotFoundException.of("Training session", sessionId));
+        if ("CLOSED".equals(session.getDeskStatus())) {
+            throw BusinessException.forbidden("This session is closed");
+        }
         List<String> atRisk = new ArrayList<>();
         for (AttendanceDtos.Mark mark : marks) {
             Player player = playerRepository.findByIdAndActiveTrue(mark.playerId())
@@ -128,11 +131,14 @@ public class AttendanceService {
             List<AttendanceRecord> records = attendanceRepository.findByPlayerId(player.getId());
             Stats stats = stats(records);
             Map<String, String> cells = new LinkedHashMap<>();
+            Map<String, String> recorded = new LinkedHashMap<>();
             for (TrainingSession session : sessions) {
-                cells.put(session.getSessionDate().toString(), records.stream()
+                AttendanceRecord match = records.stream()
                         .filter(record -> record.getSession().getId().equals(session.getId()))
-                        .map(record -> record.getStatus().name())
-                        .findFirst().orElse(""));
+                        .findFirst().orElse(null);
+                String day = session.getSessionDate().toString();
+                cells.put(day, match == null ? "" : match.getStatus().name());
+                recorded.put(day, match == null || match.getRecordedBy() == null ? "" : match.getRecordedBy());
             }
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("playerId", player.getId());
@@ -140,6 +146,7 @@ public class AttendanceService {
             row.put("knownAs", player.getKnownAs());
             row.put("position", player.getPosition().getLabel());
             row.put("cells", cells);
+            row.put("recorded", recorded);
             row.put("present", stats.present + stats.late);
             row.put("permission", stats.excused);
             row.put("absent", stats.absent);
@@ -154,6 +161,9 @@ public class AttendanceService {
     public List<Map<String, Object>> weekly() {
         Map<Integer, List<AttendanceRecord>> grouped = new LinkedHashMap<>();
         for (AttendanceRecord record : attendanceRepository.findBySession_Season_Id(settingsService.currentSeason().getId())) {
+            if (record.getPlayer() == null) {
+                continue;
+            }
             grouped.computeIfAbsent(record.getSession().getWeekNumber(), key -> new ArrayList<>()).add(record);
         }
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -181,6 +191,7 @@ public class AttendanceService {
 
     private List<Map<String, Object>> sessionView(Long sessionId) {
         return attendanceRepository.findBySessionId(sessionId).stream()
+                .filter(record -> record.getPlayer() != null)
                 .sorted(Comparator.comparing(record -> record.getPlayer().getRegisterNo()))
                 .map(record -> Map.<String, Object>of(
                         "playerId", record.getPlayer().getId(),
@@ -191,6 +202,7 @@ public class AttendanceService {
 
     private List<AttendanceRecord> filtered(Integer week, String weekday, LocalDate date, String position, Long playerId) {
         return attendanceRepository.findBySession_Season_Id(settingsService.currentSeason().getId()).stream()
+                .filter(record -> record.getPlayer() != null)
                 .filter(record -> week == null || record.getSession().getWeekNumber() == week)
                 .filter(record -> weekday == null || weekday.equalsIgnoreCase("All") || record.getSession().getWeekday().equalsIgnoreCase(weekday))
                 .filter(record -> date == null || record.getSession().getSessionDate().equals(date))
@@ -209,6 +221,8 @@ public class AttendanceService {
                 case L -> stats.late++;
                 case E -> stats.excused++;
                 case A -> stats.absent++;
+                case I, N -> {
+                }
             }
         }
         stats.percent = AttendanceCalculator.percentage(stats.present, stats.late, stats.excused, stats.absent);

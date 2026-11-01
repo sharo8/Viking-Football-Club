@@ -45,6 +45,9 @@ public class Player extends BaseEntity {
     private String phone;
     @Column(length = 180)
     private String email;
+
+    @Column(name = "user_id")
+    private Long userId;
     @Column(length = 20)
     private String preferredFoot;
     private Integer heightCm;
@@ -76,4 +79,12 @@ public class Player extends BaseEntity {
     @Column(nullable = false)
     private boolean active = true;
     private Instant deletedAt;
+    @Column(name = "exit_reason", length = 40)
+    private String exitReason;
+    @Column(name = "exit_date")
+    private LocalDate exitDate;
+    @Column(name = "exit_note", length = 500)
+    private String exitNote;
+    @Column(name = "anonymized")
+    private Boolean anonymized = false;
 }

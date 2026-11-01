@@ -77,6 +77,16 @@ public class TransferService {
             Player player = new Player();
             int next = playerRepository.findByActiveTrueOrderByRegisterNoAsc().stream()
                     .map(Player::getRegisterNo).max(Integer::compareTo).orElse(0) + 1;
+            if (jerseyNumber != null) {
+                playerRepository.findByActiveTrueOrderByRegisterNoAsc().stream()
+                        .filter(other -> other.getDeletedAt() == null && jerseyNumber.equals(other.getJerseyNumber()))
+                        .findFirst()
+                        .ifPresent(owner -> {
+                            throw BusinessException.conflict(
+                                    "Number " + jerseyNumber + " is already assigned to " + owner.getFullName(),
+                                    "JERSEY_TAKEN", java.util.Map.of("owner", owner.getFullName()));
+                        });
+            }
             player.setRegisterNo(next);
             player.setJerseyNumber(jerseyNumber);
             player.setFullName(transfer.getPlayerName());

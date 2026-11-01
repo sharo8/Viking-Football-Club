@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import rw.vikingfc.club.common.entity.BaseEntity;
+import rw.vikingfc.club.competition.Competition;
 import rw.vikingfc.club.season.Season;
 
 import java.time.Instant;
@@ -27,6 +28,18 @@ public class FootballMatch extends BaseEntity {
     private Season season;
     @Column(nullable = false, length = 160)
     private String competition;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "competition_id")
+    private Competition competitionRef;
+    @Column(length = 40)
+    private String stage;
+    @Column(nullable = false)
+    private boolean official = true;
+    @Column(nullable = false)
+    private int alertHours = 48;
+
+    @Column(name = "squad_size_override")
+    private Integer squadSizeOverride;
     @Column(length = 80)
     private String roundLabel;
     private Integer matchday;

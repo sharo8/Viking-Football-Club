@@ -32,6 +32,9 @@ public class LineupVersion extends BaseEntity {
     private LineupState status = LineupState.DRAFT;
     @Column(length = 20)
     private String formation;
+    private Integer squadSize;
+    @Column(length = 800)
+    private String squadPlanJson;
     private Instant publishedAt;
     @Column(length = 120)
     private String publishedBy;

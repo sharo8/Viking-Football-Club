@@ -25,6 +25,9 @@ public class StaffMember extends BaseEntity {
     private String fullName;
     @Column(nullable = false, length = 80)
     private String roleName;
+
+    @Column(name = "listed_in", nullable = false, length = 20)
+    private String listedIn = "STAFF";
     @Column(nullable = false, length = 40)
     private String department;
     @Column(length = 40)
@@ -32,6 +35,8 @@ public class StaffMember extends BaseEntity {
     @Column(length = 180)
     private String email;
     private LocalDate dateOfBirth;
+    @Column(name = "job_title", length = 80)
+    private String jobTitle;
     @Column(length = 400)
     private String photoUrl;
     @ManyToOne(fetch = FetchType.LAZY)

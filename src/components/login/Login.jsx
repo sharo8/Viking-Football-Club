@@ -14,6 +14,7 @@ import {
 } from "framer-motion";
 import ParticlesBackground from "./ParticlesBackground";
 import { writeSession } from "./session";
+import { useLocale } from "@/components/providers/LocaleProvider";
 import {
   PARTICLES_ENABLED,
   SPEED,
@@ -345,8 +346,66 @@ function BrandPanel({ reduced }) {
   );
 }
 
+export function OtpFields({ id, value, onChange }) {
+  const refs = useRef([]);
+  const digits = Array.from({ length: 6 }, (_, index) => value[index] || "");
+
+  function write(next, focusIndex) {
+    const clean = next.replace(/\D/g, "").slice(0, 6);
+    onChange(clean);
+    const target = Math.min(Math.max(focusIndex, 0), 5);
+    window.requestAnimationFrame(() => refs.current[target]?.focus());
+  }
+
+  return (
+    <div className="otp-boxes" role="group">
+      {digits.map((digit, index) => (
+        <input
+          key={index}
+          id={index === 0 ? id : undefined}
+          ref={(node) => { refs.current[index] = node; }}
+          className={digit ? "otp-box is-filled" : "otp-box"}
+          inputMode="numeric"
+          autoComplete={index === 0 ? "one-time-code" : "off"}
+          aria-label={`Digit ${index + 1}`}
+          value={digit}
+          onChange={(event) => {
+            const raw = event.target.value.replace(/\D/g, "");
+            if (!raw) {
+              write(digits.map((item, itemIndex) => (itemIndex === index ? "" : item)).join(""), index);
+              return;
+            }
+            if (raw.length > 1) {
+              write(raw, Math.min(raw.length, 5));
+              return;
+            }
+            const next = digits.slice();
+            next[index] = raw;
+            write(next.join(""), index + 1);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Backspace" && !digit) {
+              event.preventDefault();
+              write(digits.map((item, itemIndex) => (itemIndex === index - 1 ? "" : item)).join(""), index - 1);
+            }
+            if (event.key === "ArrowLeft") refs.current[index - 1]?.focus();
+            if (event.key === "ArrowRight") refs.current[index + 1]?.focus();
+          }}
+          onPaste={(event) => {
+            const raw = event.clipboardData.getData("text");
+            if (!/\d/.test(raw)) return;
+            event.preventDefault();
+            write(raw, 5);
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function Login() {
   const router = useRouter();
+  const { t } = useLocale();
   const reduced = useReducedMotionSafe();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
@@ -358,6 +417,9 @@ export default function Login() {
   const [banner, setBanner] = useState("");
   const [flash, setFlash] = useState(false);
   const [phase, setPhase] = useState("idle");
+  const [challenge, setChallenge] = useState("");
+  const [masked, setMasked] = useState("");
+  const [otp, setOtp] = useState("");
   const [wide, setWide] = useState(true);
   const busy = useRef(false);
   const shakeControls = useAnimation();
@@ -432,6 +494,14 @@ export default function Login() {
         throw new Error(body.message || "Those details were not accepted");
       }
       const data = body.data ?? body;
+      if (data.otpRequired) {
+        busy.current = false;
+        setPhase("idle");
+        setChallenge(data.challengeId);
+        setMasked(data.maskedEmail || "");
+        setOtp("");
+        return;
+      }
       if (!data.accessToken) throw new Error("The server did not return a session");
       const user = data.user ?? {
         email: data.email ?? email.trim(),
@@ -444,7 +514,7 @@ export default function Login() {
         { accessToken: data.accessToken, refreshToken: data.refreshToken, user },
         remember,
       );
-      const nextPath = user.mustChangePassword ? "/change-password" : "/admin";
+      const nextPath = user.mustChangePassword ? "/change-password" : user.role === "PLAYER" ? "/player" : "/admin";
       await succeed(nextPath);
     } catch (error) {
       busy.current = false;
@@ -524,6 +594,69 @@ export default function Login() {
                     ) : null}
                   </AnimatePresence>
 
+                  {challenge ? (
+                    <form
+                      className="form"
+                      onSubmit={async (event) => {
+                        event.preventDefault();
+                        if (busy.current) return;
+                        busy.current = true;
+                        setPhase("loading");
+                        setBanner("");
+                        try {
+                          const response = await fetch(`${API_URL}/api/auth/otp/verify-login`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ challengeId: challenge, code: otp }),
+                          });
+                          const body = await response.json().catch(() => ({}));
+                          if (!response.ok || body.success === false) throw new Error(body.message || "That code was not accepted");
+                          const data = body.data ?? body;
+                          const user = {
+                            email: data.email ?? email.trim(),
+                            fullName: data.fullName ?? "",
+                            role: data.role ?? "",
+                            executive: Boolean(data.executive),
+                            mustChangePassword: Boolean(data.mustChangePassword),
+                          };
+                          writeSession({ accessToken: data.accessToken, refreshToken: data.refreshToken, user }, remember);
+                          const nextPath = user.mustChangePassword ? "/change-password" : user.role === "PLAYER" ? "/player" : "/admin";
+                          await succeed(nextPath);
+                        } catch (error) {
+                          busy.current = false;
+                          setPhase("idle");
+                          setBanner(error instanceof Error ? error.message : "That code was not accepted");
+                          playShake();
+                        }
+                      }}
+                    >
+                      <p className="card-sub">Enter the 6-digit code sent to {masked}</p>
+                      <div className="field">
+                        <label htmlFor="otp">Code</label>
+                        <OtpFields id="otp" value={otp} onChange={setOtp} />
+                      </div>
+                      <button className="submit" type="submit" disabled={otp.length !== 6 || phase === "loading"}>Confirm</button>
+                      <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+                      <button
+                        type="button"
+                        className="text-link"
+                        onClick={async () => {
+                          setBanner("");
+                          const response = await fetch(`${API_URL}/api/auth/otp/resend-login`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ challengeId: challenge }),
+                          });
+                          const body = await response.json().catch(() => ({}));
+                          if (!response.ok || body.success === false) setBanner(body.message || "Wait a minute before asking for another code");
+                        }}
+                      >
+                        Resend code
+                      </button>
+                      <button type="button" className="text-link" onClick={() => { setChallenge(""); setOtp(""); setBanner(""); }}>Back to login</button>
+                      </div>
+                    </form>
+                  ) : (
                   <motion.form
                     className="form"
                     onSubmit={onSubmit}
@@ -719,6 +852,7 @@ export default function Login() {
                       </Link>
                     </motion.p>
                   </motion.form>
+                  )}
 
                   <motion.div className="foot-links" variants={fadeUp}>
                     <Link href="/" className="back-link">

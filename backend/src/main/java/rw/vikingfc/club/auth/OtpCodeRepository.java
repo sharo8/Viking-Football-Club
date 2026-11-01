@@ -10,4 +10,5 @@ public interface OtpCodeRepository extends JpaRepository<OtpCode, Long> {
     List<OtpCode> findByUserIdAndPurposeAndUsedAtIsNullOrderByCreatedAtDesc(Long userId, String purpose);
     long countByUserIdAndPurposeAndCreatedAtAfter(Long userId, String purpose, Instant after);
     Optional<OtpCode> findFirstByUserIdAndPurposeAndUsedAtIsNullOrderByCreatedAtDesc(Long userId, String purpose);
+    Optional<OtpCode> findByChallengeId(String challengeId);
 }

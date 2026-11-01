@@ -105,7 +105,29 @@
   font-size: 16px;
 }
 .vfc-area { height: auto; min-height: 120px; padding: 12px; resize: vertical; }
-.vfc-control:focus { outline: 2px solid var(--accent-brand); outline-offset: 2px; border-color: var(--accent-brand); }
+.vfc-field > input,
+.vfc-field > select,
+.vfc-field > textarea,
+.vfc-modal input:not([type="checkbox"]):not([type="radio"]),
+.vfc-modal select,
+.vfc-modal textarea {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 16px;
+}
+.vfc-field > textarea,
+.vfc-modal textarea { height: auto; min-height: 96px; padding: 12px; }
+.vfc-control:focus,
+.vfc-field > input:focus,
+.vfc-field > select:focus,
+.vfc-field > textarea:focus { outline: 2px solid var(--accent-brand); outline-offset: 2px; border-color: var(--accent-brand); }
 .vfc-control:disabled { opacity: 0.6; }
 
 .vfc-backdrop {
@@ -132,6 +154,7 @@
 }
 .vfc-modal--sm { width: min(480px, 100%); }
 .vfc-modal--lg { width: min(960px, 100%); }
+.vfc-modal--xl { width: min(1120px, 100%); }
 .vfc-modal-head, .vfc-modal-foot {
   display: flex;
   align-items: center;
@@ -141,6 +164,7 @@
   flex: none;
 }
 .vfc-modal-head { border-bottom: 1px solid var(--border); }
+.vfc-modal-head > div { flex: 1; min-width: 0; }
 .vfc-modal-head h2 { margin: 0; font-size: 20px; font-weight: 700; }
 .vfc-modal-head p { margin: 4px 0 0; color: var(--text-muted); font-size: 13px; }
 .vfc-modal-body { overflow: auto; padding: 20px; min-height: 0; flex: 1; scrollbar-width: thin; }
@@ -149,6 +173,28 @@
 .vfc-modal-body::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
 .vfc-modal-foot { border-top: 1px solid var(--border); background: var(--surface); }
 .vfc-modal-foot .vfc-foot-right { display: flex; gap: 8px; margin-left: auto; }
+.vfc-modal-foot .vfc-btn { height: 44px; min-width: 112px; }
+.vfc-switch {
+  width: 44px;
+  height: 26px;
+  border-radius: 99px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
+  padding: 2px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.vfc-switch span {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s ease;
+}
+.vfc-switch.is-on { background: var(--accent-brand); border-color: var(--accent-brand); }
+.vfc-switch.is-on span { transform: translateX(18px); }
 
 .vfc-split { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start; }
 .vfc-rail {
@@ -247,12 +293,25 @@
 }
 .vfc-avatar {
   width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
-  display: grid; place-items: center; background: var(--accent-brand); color: #fff; font-weight: 700;
-  flex: none;
+  display: grid; place-items: center; background: #a3283a; color: #fff; font-weight: 700;
+  flex: none; line-height: 1; font-size: 16px; position: relative;
 }
-.vfc-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.vfc-avatar--64 { width: 64px; height: 64px; font-size: 22px; }
-.vfc-avatar--96 { width: 96px; height: 96px; font-size: 32px; box-shadow: 0 0 0 4px #fff, 0 0 0 6px var(--accent-brand); }
+.vfc-avatar-letters {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  line-height: 1; font-weight: 700; color: #fff; letter-spacing: 0;
+}
+.vfc-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vfc-avatar--xs { width: 24px; height: 24px; font-size: 10px; }
+.vfc-avatar--sm { width: 32px; height: 32px; font-size: 13px; }
+.vfc-avatar--md { width: 40px; height: 40px; font-size: 16px; }
+.vfc-avatar--lg { width: 56px; height: 56px; font-size: 22px; }
+.vfc-avatar--xl, .vfc-avatar--96 { width: 96px; height: 96px; font-size: 38px; box-shadow: 0 0 0 4px #fff, 0 0 0 6px var(--accent-brand); }
+.vfc-avatar--64 { width: 64px; height: 64px; font-size: 26px; }
+.vfc-avatar--ring { box-shadow: 0 0 0 2px #a3283a; }
+.vfc-avatar-dot { position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border-radius: 50%; background: #1f8a4c; box-shadow: 0 0 0 2px var(--card); }
+.vfc-phone { display: flex; align-items: center; gap: 8px; }
+.vfc-phone > span { flex: none; font-weight: 700; color: var(--text-muted); }
+.vfc-phone .vfc-control { flex: 1; min-width: 0; }
 .vfc-steps { display: grid; gap: 6px; }
 .vfc-steps button {
   display: flex; align-items: center; gap: 8px; text-align: left;
@@ -374,6 +433,23 @@
   .vfc-modal { width: 100%; height: 100%; max-height: none; border-radius: 0; }
   .vfc-backdrop { padding: 0; }
 }
+.vfc-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--bg); border: 1px solid var(--border); }
+.vfc-badge--good { background: #e5f6df; color: #176b34; }
+.vfc-badge--warn { background: #f8e7c4; color: #7a4b00; }
+.vfc-badge--bad { background: #a3283a; color: #fff; border-color: #a3283a; }
+.vfc-badge--neutral { color: var(--text-muted); }
+:root.dark .vfc-badge--good { background: #143322; color: #b7e7c4; }
+:root.dark .vfc-badge--warn { background: #3a2a12; color: #f5c16c; }
+.vfc-tabs { display: flex; gap: 4px; overflow: auto; border-bottom: 1px solid var(--border); }
+.vfc-tabs button { position: relative; flex: 0 0 auto; min-height: 44px; padding: 0 14px; background: transparent; border: 0; color: var(--text-muted); font-weight: 650; }
+.vfc-tabs button.on { color: var(--text); }
+.vfc-tab-line { position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: #a3283a; }
+.vfc-stepper { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; overflow: auto; }
+.vfc-stepper button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+.vfc-stepper button span { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--border); font-size: 12px; }
+.vfc-stepper button.on { border-color: #a3283a; box-shadow: 0 0 0 3px rgba(163, 40, 58, 0.18); }
+.vfc-stepper button.on span, .vfc-stepper button.done span { background: #a3283a; color: #fff; }
+
 @media (prefers-reduced-motion: reduce) {
   .vfc-btn, .vfc-spin, .vfc-modal { transition: none; animation: none; }
 }

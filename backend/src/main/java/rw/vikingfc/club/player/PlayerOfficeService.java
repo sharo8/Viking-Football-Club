@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import rw.vikingfc.club.audit.AuditService;
 import rw.vikingfc.club.common.api.PageResponse;
+import rw.vikingfc.club.common.RwandaPhone;
 import rw.vikingfc.club.common.exception.BusinessException;
 import rw.vikingfc.club.common.util.SecurityUtils;
 import rw.vikingfc.club.contract.PlayerContractRepository;
@@ -111,7 +112,7 @@ public class PlayerOfficeService {
     @Transactional(readOnly = true)
     public Map<String, Object> jerseyAvailability(Integer number, Long excludeId) {
         List<Player> squad = playerRepository.findByActiveTrueOrderByRegisterNoAsc().stream()
-                .filter(player -> player.getDeletedAt() == null).toList();
+                .filter(player -> player.getDeletedAt() == null && player.getStatus() != PlayerStatus.FORMER).toList();
         Player owner = squad.stream()
                 .filter(player -> number != null && number.equals(player.getJerseyNumber()))
                 .filter(player -> excludeId == null || !player.getId().equals(excludeId))
@@ -207,6 +208,9 @@ public class PlayerOfficeService {
         List<Map<String, Object>> rows = new ArrayList<>();
         java.util.Set<Integer> shared = new java.util.HashSet<>(playerRepository.findDuplicateJerseys());
         for (Player player : playerRepository.findAll()) {
+            if (player.getStatus() == PlayerStatus.FORMER || Boolean.TRUE.equals(player.getAnonymized())) {
+                continue;
+            }
             boolean gone = player.getDeletedAt() != null || !player.isActive();
             if (gone != archived) {
                 continue;
@@ -401,6 +405,13 @@ public class PlayerOfficeService {
         Position position = positionName.isBlank() ? null : Position.valueOf(positionName);
         String email = text(body.get("email"));
         String phone = normalizePhone(text(body.get("phone")));
+        if (!text(body.get("phone")).isBlank()) {
+            RwandaPhone.require(phone);
+        }
+        String emergencyPhone = text(body.get("emergencyPhone"));
+        if (!emergencyPhone.isBlank()) {
+            RwandaPhone.require(emergencyPhone);
+        }
         if (jersey != null) {
             Map<String, Object> availability = jerseyAvailability(jersey, id);
             if (Boolean.TRUE.equals(availability.get("taken"))) {
@@ -460,7 +471,7 @@ public class PlayerOfficeService {
                 status,
                 false, existing == null ? LocalDate.now(clock) : existing.getSignedOn(),
                 kept(text(body.get("emergencyName")), existing == null ? "" : existing.getEmergencyContactName()),
-                kept(normalizePhone(text(body.get("emergencyPhone"))), existing == null ? "" : existing.getEmergencyContactPhone()),
+                kept(RwandaPhone.normalize(emergencyPhone), existing == null ? "" : existing.getEmergencyContactPhone()),
                 kept(text(body.get("notes")), existing == null ? "" : existing.getNotes()),
                 pay, exempt, advance,
                 executive && !text(body.get("releaseClause")).isBlank() ? money(body.get("releaseClause")) : contract == null ? null : contract.getReleaseClauseAmount(),
@@ -537,6 +548,13 @@ public class PlayerOfficeService {
             }
         }
         return Map.of("ready", ready, "errors", errors, "confirmed", confirm);
+    }
+
+    public List<List<String>> exportRows() {
+        return cards(false).stream().map(row -> List.of(
+                cell(row.get("fullName")), cell(row.get("jersey")), cell(row.get("position")),
+                cell(row.get("nationality")), cell(row.get("phone")), cell(row.get("status"))
+        )).toList();
     }
 
     public String exportCsv() {

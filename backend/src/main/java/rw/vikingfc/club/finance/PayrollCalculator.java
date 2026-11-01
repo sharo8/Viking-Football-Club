@@ -46,12 +46,12 @@ public final class PayrollCalculator {
 
         BigDecimal monthly = seasonal.divide(BigDecimal.valueOf(months), 0, RoundingMode.HALF_UP);
         BigDecimal threeMonth = monthly.multiply(BigDecimal.valueOf(phase));
-        BigDecimal social1 = sfExempt ? Money.zero() : social;
+        BigDecimal remaining5 = seasonal.subtract(threeMonth);
+        BigDecimal social1 = sfExempt ? Money.zero() : social.min(threeMonth.max(Money.zero()));
+        BigDecimal social2 = sfExempt ? Money.zero() : social.min(remaining5.max(Money.zero()));
         BigDecimal net3 = threeMonth.subtract(social1);
         BigDecimal envelope = Money.maxZero(net3.subtract(advance));
         BigDecimal owed = Money.maxZero(advance.subtract(net3));
-        BigDecimal remaining5 = seasonal.subtract(threeMonth);
-        BigDecimal social2 = sfExempt ? Money.zero() : social;
         BigDecimal remainingBalance = remaining5.subtract(social2);
         BigDecimal netBalance = remainingBalance.subtract(owed);
         BigDecimal totalSocial = social1.add(social2);

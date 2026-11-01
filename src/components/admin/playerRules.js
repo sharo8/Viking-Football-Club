@@ -1,3 +1,5 @@
+import { phoneProblem } from "@/lib/phone";
+
 function blank(value) {
   return value == null || String(value).trim() === "";
 }
@@ -6,7 +8,7 @@ function issue(field, code, message, step) {
   return { field, code, message, step };
 }
 
-export function profileIssues(form, { creating, executive, hasPhoto }) {
+export function profileIssues(form, { creating, executive, hasPhoto, locale = "en" }) {
   const rows = [];
   const need = (field, value, step) => {
     if (creating && blank(value)) rows.push(issue(field, "REQUIRED", "Required", step));
@@ -37,6 +39,10 @@ export function profileIssues(form, { creating, executive, hasPhoto }) {
   need("emergencyRelationship", form.emergencyRelationship, 1);
   need("emergencyPhone", form.emergencyPhone, 1);
   if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) rows.push(issue("email", "EMAIL", "Email", 1));
+  const phoneMsg = phoneProblem(form.phone, locale);
+  if (phoneMsg) rows.push(issue("phone", "PHONE", phoneMsg, 1));
+  const emergencyMsg = phoneProblem(form.emergencyPhone, locale);
+  if (emergencyMsg) rows.push(issue("emergencyPhone", "PHONE", emergencyMsg, 1));
   if (creating && executive) {
     need("contractStart", form.contractStart, 2);
     need("contractEnd", form.contractEnd, 2);
@@ -58,7 +64,7 @@ export function profileIssues(form, { creating, executive, hasPhoto }) {
 export function paySummary({ seasonalPay, advance, socialFund, sfExempt }) {
   const seasonal = Number(seasonalPay || 0);
   const paidAdvance = Number(advance || 0);
-  const social = sfExempt ? 0 : Number(socialFund || 12000);
+  const social = sfExempt ? 0 : Number(socialFund || 0);
   const monthly = Math.round(seasonal / 8);
   const three = monthly * 3;
   const net3 = three - social;
@@ -66,7 +72,7 @@ export function paySummary({ seasonalPay, advance, socialFund, sfExempt }) {
   const owed = Math.max(0, paidAdvance - net3);
   const remaining = seasonal - three;
   const balance = remaining - social;
-  return { monthly, three, social1: social, net3, envelope, owed, remaining, social2: social, totalSocial: social * 2, balance };
+  return { monthly, three, social1: social, net3, envelope, owed, remaining, social2: social, totalSocial: social * 2, balance, shortfall: net3 < 0 };
 }
 
 export const BONUS_TYPES = ["MATCH_WIN", "CLEAN_SHEET", "ASSIST", "GOAL", "MAN_OF_THE_MATCH", "APPEARANCE", "STARTING_XI", "MATCH_DRAW", "CUSTOM"];

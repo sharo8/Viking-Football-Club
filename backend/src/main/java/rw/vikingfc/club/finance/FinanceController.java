@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import rw.vikingfc.club.common.api.ApiResponse;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/finance")
@@ -28,6 +29,12 @@ public class FinanceController {
     @Operation(summary = "Workbook summary tables A to H, plus staff and club payroll")
     public ApiResponse<FinanceDtos.Summary> summary() {
         return ApiResponse.ok("Finance summary", financeService.summary());
+    }
+
+    @GetMapping("/roster")
+    @Operation(summary = "One payroll row per person, split into players, staff and administration")
+    public ApiResponse<Map<String, Object>> roster() {
+        return ApiResponse.ok("Payroll roster", financeService.roster());
     }
 
     @GetMapping("/unpaid")

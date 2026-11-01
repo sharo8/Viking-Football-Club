@@ -16,6 +16,8 @@ import rw.vikingfc.club.common.entity.BaseEntity;
 public class AuditLog extends BaseEntity {
     @Column(length = 180)
     private String actorEmail;
+    @Column(name = "actor_name", length = 160)
+    private String actorName;
     @Column(length = 40)
     private String actorRole;
     @Column(nullable = false, length = 40)

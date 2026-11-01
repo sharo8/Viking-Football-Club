@@ -26,9 +26,7 @@ public class DevPasswordController implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        log.warn("DEV temporary password for every seeded account: {} (mustChangePassword=true). "
-                        + "Restore it with POST /api/dev/users/reset-password {{\"email\":\"president@vikingfc.rw\"}}",
-                UserService.TEMP_PASSWORD);
+        log.info("Startup does not change any password. A temporary password is applied only when POST /api/dev/users/reset-password is called.");
     }
 
     @PostMapping("/users/reset-password")

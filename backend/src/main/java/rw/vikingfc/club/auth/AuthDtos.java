@@ -13,7 +13,12 @@ public final class AuthDtos {
     public static final String PASSWORD_RULE =
             "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$";
 
-    public record LoginRequest(@NotBlank @Email String email, @NotBlank String password) {
+    public record LoginRequest(@NotBlank String email, @NotBlank String password) {
+        public LoginRequest {
+            if (email != null) {
+                email = email.trim().toLowerCase(java.util.Locale.ROOT);
+            }
+        }
     }
 
     public record RefreshRequest(@NotBlank String refreshToken) {
@@ -54,10 +59,37 @@ public final class AuthDtos {
             String fullName,
             Role role,
             boolean executive,
-            boolean mustChangePassword
+            boolean mustChangePassword,
+            String phone,
+            String photoUrl
     ) {
     }
 
     public record ForgotResponse(String message, String resetToken) {
+    }
+
+    public record LoginResponse(
+            boolean otpRequired,
+            String challengeId,
+            String maskedEmail,
+            Integer expiresIn,
+            String accessToken,
+            String refreshToken,
+            Long accessExpiresInSeconds,
+            Boolean mustChangePassword,
+            String email,
+            String fullName,
+            Role role,
+            Boolean executive
+    ) {
+        public static LoginResponse challenge(String challengeId, String maskedEmail) {
+            return new LoginResponse(true, challengeId, maskedEmail, 300, null, null, null, null, null, null, null, null);
+        }
+
+        public static LoginResponse tokens(TokenResponse tokens) {
+            return new LoginResponse(false, null, null, null,
+                    tokens.accessToken(), tokens.refreshToken(), tokens.accessExpiresInSeconds(),
+                    tokens.mustChangePassword(), tokens.email(), tokens.fullName(), tokens.role(), tokens.executive());
+        }
     }
 }

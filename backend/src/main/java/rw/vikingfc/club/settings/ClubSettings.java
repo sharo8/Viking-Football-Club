@@ -108,6 +108,27 @@ public class ClubSettings extends BaseEntity {
     private int lineupMaxSquad = 23;
 
     @Column(nullable = false)
+    private int lineupDefaultSquadSize = 18;
+
+    @Column(nullable = false, length = 7)
+    private String kitPrimary = "#a3283a";
+
+    @Column(nullable = false, length = 7)
+    private String kitSecondary = "#ffffff";
+
+    @Column(name = "kit_number_color", nullable = false, length = 7)
+    private String kitNumberColor = "#ffffff";
+
+    @Column(name = "kit_gk_primary", nullable = false, length = 7)
+    private String kitGkPrimary = "#1d4e89";
+
+    @Column(name = "kit_away_primary", nullable = false, length = 7)
+    private String kitAwayPrimary = "#111111";
+
+    @Column(length = 2000)
+    private String squadSizeByCompetition;
+
+    @Column(nullable = false)
     private int ratingCoachPct = 70;
 
     @Column(nullable = false, precision = 3, scale = 1)

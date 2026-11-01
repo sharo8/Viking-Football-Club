@@ -8,5 +8,7 @@ import java.util.Optional;
 public interface FineRepository extends JpaRepository<Fine, Long> {
     Optional<Fine> findByAttendanceRecordId(Long attendanceRecordId);
     List<Fine> findByPlayerIdOrderByFineDateAsc(Long playerId);
+    List<Fine> findByStaffIdOrderByFineDateAsc(Long staffId);
+    List<Fine> findByTrainingSessionId(Long trainingSessionId);
     List<Fine> findByMatchIdAndPlayerIdAndFineType(Long matchId, Long playerId, FineType type);
 }

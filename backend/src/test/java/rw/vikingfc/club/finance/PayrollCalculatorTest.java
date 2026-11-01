@@ -105,4 +105,12 @@ class PayrollCalculatorTest {
         assertEquals("SF Exempt", pazzo.paymentStatus());
         assertEquals(Money.zero(), pazzo.totalSocialFund());
     }
+
+    @Test
+    void zeroSeasonalPayDoesNotCreateASocialFundDebt() {
+        PayrollCalculator.Result result = PayrollCalculator.calculate(Money.zero(), false, Money.zero(), 8, 3, Money.of(12000));
+        assertEquals(Money.zero(), result.socialFundPhase1());
+        assertEquals(Money.zero(), result.socialFundPhase2());
+        assertEquals(Money.zero(), result.netBalanceDue());
+    }
 }

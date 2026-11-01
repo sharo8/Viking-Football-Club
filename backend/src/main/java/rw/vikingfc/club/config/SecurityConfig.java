@@ -59,7 +59,9 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
                                 "/api/auth/otp/request",
-                                "/api/auth/otp/verify"
+                                "/api/auth/otp/verify",
+                                "/api/auth/otp/verify-login",
+                                "/api/auth/otp/resend-login"
                         ).permitAll()
                         .requestMatchers(
                                 "/swagger-ui.html",
@@ -84,7 +86,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(properties.cors().originList());
+        configuration.setAllowedOriginPatterns(properties.cors().originList());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Content-Disposition"));

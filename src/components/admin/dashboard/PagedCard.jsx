@@ -26,8 +26,13 @@ export function PagedCard({ title, tabs, pageSize = 5, queryKey, resetKey, fetch
   }, [tab, resetKey]);
 
   const go = (next) => {
+    const main = document.querySelector(".admin-main");
+    const top = main ? main.scrollTop : 0;
     setDir(next > page ? 1 : -1);
     setPage(next);
+    const hold = () => { if (main) main.scrollTop = top; };
+    requestAnimationFrame(hold);
+    window.setTimeout(hold, 60);
   };
 
   const onKey = (event) => {
@@ -68,7 +73,7 @@ export function PagedCard({ title, tabs, pageSize = 5, queryKey, resetKey, fetch
         ) : null}
       </div>
       <footer className="paged-card__foot">
-        <button type="button" className="page-btn" aria-label="Previous page" disabled={page <= 0 || query.isFetching} onClick={() => go(page - 1)}>
+        <button type="button" className="page-btn" aria-label="Previous page" disabled={page <= 0 || query.isFetching} onMouseDown={(event) => event.preventDefault()} onClick={() => go(page - 1)}>
           <ChevronLeft size={16} /> Prev
         </button>
         <span>
@@ -77,7 +82,7 @@ export function PagedCard({ title, tabs, pageSize = 5, queryKey, resetKey, fetch
             {Array.from({ length: Math.min(totalPages, 6) }, (_, index) => <i key={index} className={index === Math.min(page, 5) ? "is-on" : ""} />)}
           </span>
         </span>
-        <button type="button" className="page-btn" aria-label="Next page" disabled={totalPages === 0 || page + 1 >= totalPages || query.isFetching} onClick={() => go(page + 1)}>
+        <button type="button" className="page-btn" aria-label="Next page" disabled={totalPages === 0 || page + 1 >= totalPages || query.isFetching} onMouseDown={(event) => event.preventDefault()} onClick={() => go(page + 1)}>
           Next <ChevronRight size={16} />
         </button>
       </footer>

@@ -3,20 +3,25 @@ export const EXECUTIVE_ROLES = ["PRESIDENT", "GENERAL_MANAGER", "FINANCE_MANAGER
 export type AdminSection =
   | "dashboard"
   | "players"
+  | "formerPlayers"
+  | "approvals"
   | "captains"
   | "staff"
   | "matches"
+  | "calendar"
   | "news"
   | "gallery"
   | "videos"
   | "sponsors"
   | "table"
   | "users"
+  | "roles"
   | "messages"
   | "emails"
   | "notifications"
   | "settings"
   | "finance"
+  | "bonuses"
   | "attendance"
   | "fines"
   | "lineup"
@@ -31,9 +36,11 @@ export type AdminSection =
 const ALL: AdminSection[] = [
   "dashboard",
   "players",
+  "formerPlayers",
   "captains",
   "staff",
   "matches",
+  "calendar",
   "news",
   "gallery",
   "videos",
@@ -44,6 +51,7 @@ const ALL: AdminSection[] = [
   "notifications",
   "settings",
   "finance",
+  "bonuses",
   "attendance",
   "fines",
   "lineup",
@@ -57,13 +65,13 @@ const ALL: AdminSection[] = [
 ];
 
 const BY_ROLE: Record<string, AdminSection[]> = {
-  ASSISTANT_MANAGER: ALL.filter((id) => !["finance", "audit", "users"].includes(id)),
-  DOCTOR: ["dashboard", "players", "captains", "medical", "attendance", "lineup", "notifications", "profile"],
+  ASSISTANT_MANAGER: ALL.filter((id) => !["finance", "bonuses", "audit", "users"].includes(id)),
+  DOCTOR: ["dashboard", "players", "captains", "medical", "lineup", "notifications", "profile"],
   SOCIAL_MEDIA_MANAGER: ["dashboard", "players", "captains", "news", "gallery", "videos", "messages", "marketing", "lineup", "notifications", "profile"],
   MARKETING_MANAGER: ["dashboard", "players", "captains", "news", "gallery", "sponsors", "partners", "marketing", "lineup", "messages", "notifications", "profile"],
-  HEAD_COACH: ["dashboard", "players", "captains", "matches", "attendance", "lineup", "medical", "notifications", "profile"],
-  ASSISTANT_COACH: ["dashboard", "players", "captains", "matches", "attendance", "lineup", "notifications", "profile"],
-  GOALKEEPER_COACH: ["dashboard", "players", "captains", "matches", "lineup", "notifications", "profile"],
+  HEAD_COACH: ["dashboard", "players", "captains", "matches", "calendar", "attendance", "lineup", "medical", "notifications", "profile"],
+  ASSISTANT_COACH: ["dashboard", "players", "captains", "matches", "calendar", "attendance", "lineup", "notifications", "profile"],
+  GOALKEEPER_COACH: ["dashboard", "players", "captains", "matches", "calendar", "attendance", "lineup", "notifications", "profile"],
 };
 
 export function isExecutive(role: string) {
@@ -78,7 +86,7 @@ export function dashScope(role: string) {
     return { people: true, sport: true, attendance: true, injuries: true, fines: true, finance: true, partners: true, next: true, analysis: true };
   }
   if (role === "DOCTOR") {
-    return { people: true, sport: false, attendance: true, injuries: true, fines: false, finance: false, partners: false, next: true, analysis: false };
+    return { people: true, sport: false, attendance: false, injuries: true, fines: false, finance: false, partners: false, next: true, analysis: false };
   }
   if (MEDIA_ROLES.includes(role)) {
     return { people: false, sport: true, attendance: false, injuries: false, fines: false, finance: false, partners: true, next: true, analysis: false };
@@ -90,9 +98,11 @@ export function dashScope(role: string) {
 }
 
 export function canSee(role: string, section: string) {
+  const key = section === "administration" ? "users" : section === "former-players" ? "formerPlayers" : section;
+  if (key === "roles") return isExecutive(role);
   if (isExecutive(role)) return true;
   const allowed = BY_ROLE[role] ?? ["dashboard", "profile"];
-  return allowed.includes(section as AdminSection);
+  return allowed.includes(key as AdminSection);
 }
 
 export const ROLE_LABEL: Record<string, string> = {
@@ -106,4 +116,10 @@ export const ROLE_LABEL: Record<string, string> = {
   HEAD_COACH: "Head Coach",
   ASSISTANT_COACH: "Assistant Coach",
   GOALKEEPER_COACH: "Goalkeeper Coach",
+  FITNESS_COACH: "Fitness Coach",
+  PHYSIOTHERAPIST: "Physiotherapist",
+  KIT_MANAGER: "Kit Manager",
+  TEAM_MANAGER: "Team Manager",
+  PLAYER: "Player",
+  CUSTOM: "Custom",
 };

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { readSession } from "@/components/login/session";
-import { getData } from "@/services/api";
+import { api, getData } from "@/services/api";
 
 export type ClubUser = {
   fullName: string;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fullName: me.fullName || "",
             email: me.email || "",
             role: me.role || "",
-            phone: "",
+            phone: me.phone || "",
             photo: me.photoUrl || null,
             mustChangePassword: Boolean(me.mustChangePassword),
           });
@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) setUserState({ ...user, photo });
   };
   const logout = () => {
+    api.post("/api/session/end", { reason: "LOGOUT" }).catch(() => {});
     clearSession();
     setUserState(null);
   };

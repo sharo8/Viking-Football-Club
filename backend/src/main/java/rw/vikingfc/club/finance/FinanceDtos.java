@@ -1,5 +1,6 @@
 package rw.vikingfc.club.finance;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -11,10 +12,24 @@ public final class FinanceDtos {
     private FinanceDtos() {
     }
 
-    public record PayRequest(@NotNull BigDecimal amount, @NotNull PayMethod method, String reference) {
+    public record PayRequest(@NotNull BigDecimal amount, @NotNull PayMethod method, String reference, LocalDate paidOn) {
     }
 
     public record ReverseRequest(@NotNull String reason) {
+    }
+
+    public record ContractPayRequest(@NotNull BigDecimal seasonalPay, @NotNull BigDecimal advance, boolean sfExempt, String reason) {
+    }
+
+    public record ExpenseRequest(@NotBlank String category, String subcategory, @NotBlank String description,
+                                 @NotNull BigDecimal amount, @NotNull LocalDate expenseDate, String vendorName,
+                                 String vendorPhone, String method, String note, String linkedLabel, String status, String customLabel) {
+    }
+
+    public record ExportRequest(String what, String who, String period, String split, String level, String format, String person) {
+    }
+
+    public record ReceiptRequest(String personType, Long personId, String personName, Long paymentId, @NotNull BigDecimal amount) {
     }
 
     public record InstalmentView(Long id, String name, InstalmentKind kind, LocalDate dueDate, BigDecimal amountDue,

@@ -1,0 +1,1 @@
+ALTER TABLE club_settings RENAME COLUMN lineup_default_squad TO lineup_default_squad_size;

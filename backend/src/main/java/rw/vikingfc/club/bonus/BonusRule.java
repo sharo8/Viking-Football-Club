@@ -43,4 +43,10 @@ public class BonusRule extends BaseEntity {
     private String description;
     @Column(name = "custom_name", length = 40)
     private String customName;
+    @Column(name = "custom_source_lang", length = 2)
+    private String customSourceLang;
+    @Column(name = "custom_name_fr", length = 80)
+    private String customNameFr;
+    @Column(name = "custom_name_rw", length = 80)
+    private String customNameRw;
 }

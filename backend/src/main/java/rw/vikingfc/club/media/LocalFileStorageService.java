@@ -22,6 +22,11 @@ public class LocalFileStorageService implements FileStorageService {
 
     public LocalFileStorageService(AppProperties properties) {
         this.root = Path.of(properties.uploads().dir()).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(root);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Upload directory could not be created: " + root, ex);
+        }
     }
 
     @Override
@@ -49,7 +54,7 @@ public class LocalFileStorageService implements FileStorageService {
             Path thumb = directory.resolve(thumbName);
             Path sized = directory.resolve("sized-" + name);
             try {
-                Thumbnails.of(target.toFile()).size(800, 800).toFile(sized.toFile());
+                Thumbnails.of(target.toFile()).size(800, 800).outputQuality(0.9).toFile(sized.toFile());
                 Files.move(sized, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ignored) {
                 Files.deleteIfExists(sized);
@@ -81,11 +86,8 @@ public class LocalFileStorageService implements FileStorageService {
     }
 
     private void writeThumbnail(Path source, Path thumb, String extension) {
-        if ("webp".equals(extension)) {
-            return;
-        }
         try {
-            Thumbnails.of(source.toFile()).size(128, 128).toFile(thumb.toFile());
+            Thumbnails.of(source.toFile()).size(256, 256).toFile(thumb.toFile());
         } catch (IOException ignored) {
             try (InputStream in = Files.newInputStream(source)) {
                 Files.copy(in, thumb);

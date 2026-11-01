@@ -4,8 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import rw.vikingfc.club.media.FileStorageService;
+import rw.vikingfc.club.media.StoredFile;
 import rw.vikingfc.club.auth.RefreshTokenRepository;
 import rw.vikingfc.club.common.exception.BusinessException;
+import rw.vikingfc.club.common.RwandaPhone;
 import rw.vikingfc.club.common.exception.NotFoundException;
 import rw.vikingfc.club.common.util.SecurityUtils;
 
@@ -22,10 +26,40 @@ public class UserService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClubRoleRepository clubRoleRepository;
+    private final FileStorageService storage;
 
     @Transactional(readOnly = true)
     public List<UserDtos.View> list() {
         return userRepository.findByDeletedAtIsNullOrderByFullNameAsc().stream().map(this::toView).toList();
+    }
+
+    public UserDtos.View photo(Long id, MultipartFile file) {
+        User user = require(id);
+        String previous = user.getPhotoUrl();
+        StoredFile stored = storage.store(file, "people");
+        if (previous != null && !previous.equals(stored.url())) {
+            storage.delete(previous);
+        }
+        user.setPhotoUrl(stored.url());
+        return toView(user);
+    }
+
+    public UserDtos.View clearPhoto(Long id) {
+        User user = require(id);
+        storage.delete(user.getPhotoUrl());
+        user.setPhotoUrl(null);
+        return toView(user);
+    }
+
+    public List<List<String>> table(String q, String lang) {
+        String needle = q == null ? "" : q.toLowerCase();
+        String active = "fr".equals(lang) ? "Actif" : "rw".equals(lang) ? "Irakora" : "Active";
+        String suspended = "fr".equals(lang) ? "Suspendu" : "rw".equals(lang) ? "Yahagaritswe" : "Suspended";
+        return list().stream().filter(row -> {
+            String blob = (row.fullName() + " " + row.email() + " " + row.role()).toLowerCase();
+            return needle.isBlank() || blob.contains(needle);
+        }).map(row -> List.of(row.fullName(), row.email(), row.role().name(), row.active() ? active : suspended)).toList();
     }
 
     @Transactional(readOnly = true)
@@ -35,13 +69,23 @@ public class UserService {
 
     public UserDtos.Credentials create(UserDtos.CreateRequest request) {
         userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(request.email()).ifPresent(existing -> {
-            throw BusinessException.conflict("A user with this email already exists");
+            throw BusinessException.conflict("A user with this email already exists", "EMAIL_TAKEN", null);
         });
+        String code = request.role().name();
+        String category = clubRoleRepository.findByCode(code).map(ClubRole::getCategory).orElse(RolePolicy.category(code));
+        if (!"ADMINISTRATION".equals(category)) {
+            throw BusinessException.badRequest("Administration accounts use an administration role", "ROLE_CATEGORY_MISMATCH");
+        }
+        Integer seats = clubRoleRepository.findByCode(code).map(ClubRole::getMaxSeats).orElse(RolePolicy.seats(code));
+        if (seats != null && userRepository.countByRoleAndActiveTrueAndDeletedAtIsNull(request.role()) >= seats) {
+            throw BusinessException.conflict("That role has no seats left", "ROLE_SEATS_FULL", null);
+        }
         User user = new User();
         user.setEmail(request.email().trim().toLowerCase());
         user.setFullName(request.fullName().trim());
         user.setRole(request.role());
-        user.setPhone(request.phone());
+        user.setRoleCode(code);
+        user.setPhone(RwandaPhone.store(request.phone()));
         user.setActive(true);
         user.setMustChangePassword(true);
         user.setPasswordHash(passwordEncoder.encode(TEMP_PASSWORD));
@@ -55,7 +99,8 @@ public class UserService {
         guardLastExecutive(user, request.role(), request.active());
         user.setFullName(request.fullName().trim());
         user.setRole(request.role());
-        user.setPhone(request.phone());
+        user.setRoleCode(request.role().name());
+        user.setPhone(RwandaPhone.store(request.phone()));
         user.setActive(request.active());
         if (!request.active()) {
             refreshTokenRepository.revokeAllForUser(user.getId());
@@ -108,7 +153,10 @@ public class UserService {
                 user.getRole().isExecutive(),
                 user.getPhone(),
                 user.isActive(),
-                user.isMustChangePassword()
+                user.isMustChangePassword(),
+                user.getLastLoginAt(),
+                user.getCreatedAt(),
+                user.getPhotoUrl()
         );
     }
 

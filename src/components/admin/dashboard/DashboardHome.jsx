@@ -10,6 +10,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useLocale } from "@/components/providers/LocaleProvider";
 import { dashScope } from "@/lib/admin/access";
 import { dashText } from "@/lib/admin/dashCopy";
+import { activitySentence, roleLabel } from "@/lib/admin/activityText";
+import { Modal } from "@/ui/kit";
+import "@/crud/crud.css";
 import { getData } from "@/services/api";
 import { PagedCard } from "./PagedCard";
 import { Countdown, KpiCard, Leaderboard, Mark, MatchDrawer } from "./parts";
@@ -60,6 +63,7 @@ export function DashboardHome() {
   const reduced = useReducedMotion();
   const [period, setPeriod] = useState("season");
   const [open, setOpen] = useState(null);
+  const [detail, setDetail] = useState(null);
   const summary = useQuery({
     queryKey: ["dashboard", "summary", period],
     queryFn: () => getData("/api/dashboard/summary", { period }),
@@ -219,7 +223,10 @@ export function DashboardHome() {
           fetcher={({ page, size }) => getData("/api/dashboard/activity", { page, size })}
           empty={<EmptyNote text={copy.empty} />}
           renderItem={(item) => (
-            <p key={item.id} className="dash-line"><strong>{item.text}</strong><span className="meta">{String(item.at || "").replace("T", " ").slice(0, 16)}</span></p>
+            <button key={item.id} type="button" className="dash-line" onClick={() => setDetail({ kind: "activity", item })}>
+              <strong>{activitySentence(locale, item)}</strong>
+              <span className="meta">{String(item.at || "").replace("T", " ").slice(0, 16)}</span>
+            </button>
           )}
         />
         <PagedCard
@@ -235,13 +242,33 @@ export function DashboardHome() {
           }}
           empty={<EmptyNote text={copy.empty} />}
           renderItem={(item) => (
-            <p key={item.id} className="dash-line"><span className={`dash-badge ${item.tone}`}>{text(item.key)}</span> {item.name} {item.detail}</p>
+            <button key={item.id} type="button" className="dash-line" onClick={() => setDetail({ kind: "alert", item })}>
+              <span className={`dash-badge ${item.tone}`}>{text(item.key)}</span> {item.name} {item.detail}
+            </button>
           )}
         />
       </div>
 
       <ChartBoard period={period} scope={scope} t={text} locale={locale} />
       {open ? <MatchDrawer match={open} onClose={() => setOpen(null)} text={text} /> : null}
+      {detail ? (
+        <Modal title={detail.kind === "alert" ? text(detail.item.key) : copy.activity} subtitle={String((detail.item.at || "")).replace("T", " ").slice(0, 16)} onClose={() => setDetail(null)} closeLabel={copy.close || "Close"}>
+          {detail.kind === "alert" ? (
+            <div className="crud-grid">
+              <article className="view-card span-2"><small>{text(detail.item.key)}</small><strong>{detail.item.name} {detail.item.detail}</strong></article>
+              <p className="span-2">{detail.item.key === "alertJersey" ? text("alertJersey") : text(detail.item.key)}. {detail.item.name}. {detail.item.detail}</p>
+            </div>
+          ) : (
+            <div className="crud-grid">
+              <article className="view-card span-2"><small>{copy.activity}</small><strong>{activitySentence(locale, detail.item)}</strong></article>
+              <article className="view-card"><small>{copy.role || "Role"}</small><strong>{roleLabel(locale, detail.item.role) || "—"}</strong></article>
+              <article className="view-card"><small>{copy.email || "Email"}</small><strong>{detail.item.actorName || detail.item.actor || "—"}</strong></article>
+              <article className="view-card"><small>Before</small><strong>{detail.item.before || "—"}</strong></article>
+              <article className="view-card"><small>After</small><strong>{detail.item.after || detail.item.text || "—"}</strong></article>
+            </div>
+          )}
+        </Modal>
+      ) : null}
     </section>
   );
 }

@@ -10,7 +10,13 @@ public enum Role {
     MARKETING_MANAGER,
     HEAD_COACH,
     ASSISTANT_COACH,
-    GOALKEEPER_COACH;
+    GOALKEEPER_COACH,
+    FITNESS_COACH,
+    PHYSIOTHERAPIST,
+    KIT_MANAGER,
+    TEAM_MANAGER,
+    PLAYER,
+    CUSTOM;
 
     public boolean isExecutive() {
         return this == PRESIDENT || this == GENERAL_MANAGER || this == FINANCE_MANAGER;

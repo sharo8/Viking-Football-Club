@@ -38,7 +38,10 @@ spring:
           auth: true
           starttls:
             enable: true
-            required: false
+            required: true
+          ssl:
+            trust: smtp.gmail.com
+            protocols: TLSv1.2
           connectiontimeout: 10000
           timeout: 10000
           writetimeout: 10000
@@ -75,7 +78,7 @@ info:
     currency: RWF
 
 app:
-  bootstrap-derived-data: true
+  bootstrap-derived-data: false
   jwt:
     secret: ${JWT_SECRET:dev-only-change-me-viking-fc-jwt-secret-key-2026-min-32b}
     access-minutes: ${JWT_ACCESS_MINUTES:480}
@@ -95,6 +98,9 @@ app:
     enabled: ${MAIL_ENABLED:true}
   errors:
     expose-details: ${EXPOSE_ERROR_DETAILS:false}
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${ANTHROPIC_MODEL:claude-3-5-haiku-latest}
 
 logging:
   level:

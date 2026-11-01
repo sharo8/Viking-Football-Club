@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [{ source: "/admin/users", destination: "/admin/administration", permanent: false }];
+  },
   images: {
     unoptimized: false,
   },
