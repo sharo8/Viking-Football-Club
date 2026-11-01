@@ -34,6 +34,43 @@ import { SettingsOffice } from "./SettingsOffice";
 import { EmailLog } from "./EmailLog";
 
 type Field = { key: string; label: string; type?: "text" | "number" | "select"; options?: string[] };
+type InputEvent = { target: { value: string } };
+type ApiRecord = {
+  id?: string | number;
+  knownAs?: string;
+  fullName?: string;
+  name?: string;
+  jerseyNumber?: string | number;
+  position?: unknown;
+  role?: unknown;
+  opponent?: unknown;
+  kickoffDate?: unknown;
+  kickoff?: unknown;
+  status?: unknown;
+  category?: unknown;
+  team?: unknown;
+  points?: number;
+  pts?: number;
+  played?: number;
+  email?: string;
+  content?: ApiRecord[];
+  player?: unknown;
+  playerName?: unknown;
+  reason?: unknown;
+  fineType?: unknown;
+  amount?: number;
+  playerId?: string | number;
+  bodyPart?: unknown;
+  injuryType?: unknown;
+  direction?: unknown;
+  actor?: unknown;
+  action?: unknown;
+  after?: unknown;
+  at?: unknown;
+  amountDue?: number;
+  amountPaid?: number;
+  notCleared?: ApiRecord[];
+};
 
 function useCopy() {
   const { locale } = useLocale();
@@ -203,11 +240,11 @@ function Board({ bucket, title, fields, seed }: { bucket: string; title: string;
               <label key={field.key} className="vfc-field">
                 <span className="vfc-label">{field.label}</span>
                 {field.type === "select" ? (
-                  <SelectInput value={String(draft[field.key] ?? field.options?.[0] ?? "")} onChange={(event: any) => setDraft({ ...draft, [field.key]: event.target.value })}>
+                  <SelectInput value={String(draft[field.key] ?? field.options?.[0] ?? "")} onChange={(event: InputEvent) => setDraft({ ...draft, [field.key]: event.target.value })}>
                     {field.options?.map((option) => <option key={option}>{option}</option>)}
                   </SelectInput>
                 ) : (
-                  <TextInput type={field.type === "number" ? "number" : "text"} value={String(draft[field.key] ?? "")} onChange={(event: any) => setDraft({ ...draft, [field.key]: field.type === "number" ? Number(event.target.value) : event.target.value })} />
+                  <TextInput type={field.type === "number" ? "number" : "text"} value={String(draft[field.key] ?? "")} onChange={(event: InputEvent) => setDraft({ ...draft, [field.key]: field.type === "number" ? Number(event.target.value) : event.target.value })} />
                 )}
               </label>
             ))}
@@ -241,49 +278,49 @@ function Board({ bucket, title, fields, seed }: { bucket: string; title: string;
 async function loadSection(section: string): Promise<Row[]> {
   const text = (value: unknown) => (value == null ? "" : String(value));
   if (section === "players") {
-    const rows = (await getData("/api/players")) as any[];
-    return rows.map((row) => ({ id: row.id, name: row.knownAs || row.fullName, number: row.jerseyNumber ?? "", position: text(row.position) }));
+    const rows = (await getData("/api/players")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, name: row.knownAs || row.fullName, number: row.jerseyNumber ?? "", position: text(row.position) })) as Row[];
   }
   if (section === "staff") {
-    const rows = (await getData("/api/staff")) as any[];
-    return rows.map((row) => ({ id: row.id, name: row.fullName || row.name, role: text(row.role) }));
+    const rows = (await getData("/api/staff")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, name: row.fullName || row.name, role: text(row.role) })) as Row[];
   }
   if (section === "matches") {
-    const rows = (await getData("/api/matches")) as any[];
-    return rows.map((row) => ({ id: row.id, opponent: text(row.opponent), date: text(row.kickoffDate || row.kickoff), status: text(row.status) }));
+    const rows = (await getData("/api/matches")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, opponent: text(row.opponent), date: text(row.kickoffDate || row.kickoff), status: text(row.status) })) as Row[];
   }
   if (section === "partners" || section === "sponsors") {
-    const rows = (await getData("/api/partners")) as any[];
-    return rows.map((row) => ({ id: row.id, name: text(row.name), tier: text(row.category || row.status) }));
+    const rows = (await getData("/api/partners")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, name: text(row.name), tier: text(row.category || row.status) })) as Row[];
   }
   if (section === "table") {
-    const rows = ((await getData("/api/standings")) || []) as any[];
-    return rows.map((row, index) => ({ id: row.id || index, team: text(row.team || row.name), pts: row.points ?? row.pts ?? 0, played: row.played ?? 0 }));
+    const rows = ((await getData("/api/standings")) || []) as ApiRecord[];
+    return rows.map((row, index) => ({ id: row.id || index, team: text(row.team || row.name), pts: row.points ?? row.pts ?? 0, played: row.played ?? 0 })) as Row[];
   }
   if (section === "users") {
-    const rows = (await getData("/api/users")) as any[];
-    return rows.map((row) => ({ id: row.id, name: text(row.fullName), email: text(row.email), role: text(row.role) }));
+    const rows = (await getData("/api/users")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, name: text(row.fullName), email: text(row.email), role: text(row.role) })) as Row[];
   }
   if (section === "fines") {
     const rows = await getData("/api/fines/ledger");
-    const list = (Array.isArray(rows) ? rows : rows.content || []) as any[];
-    return list.map((row) => ({ id: row.id, name: text(row.player || row.playerName), reason: text(row.reason || row.fineType), amount: row.amount ?? 0, status: text(row.status) }));
+    const list = (Array.isArray(rows) ? rows : rows.content || []) as ApiRecord[];
+    return list.map((row) => ({ id: row.id, name: text(row.player || row.playerName), reason: text(row.reason || row.fineType), amount: row.amount ?? 0, status: text(row.status) })) as Row[];
   }
   if (section === "medical") {
     const body = await getData("/api/medical/dashboard");
-    return ((body.notCleared || []) as any[]).map((row) => ({ id: row.id || row.playerId, name: text(row.name), injury: text(row.bodyPart || row.injuryType), status: text(row.status) }));
+    return ((body.notCleared || []) as ApiRecord[]).map((row) => ({ id: row.id || row.playerId, name: text(row.name), injury: text(row.bodyPart || row.injuryType), status: text(row.status) })) as Row[];
   }
   if (section === "transfers") {
-    const rows = (await getData("/api/transfers")) as any[];
-    return rows.map((row) => ({ id: row.id, name: text(row.player || row.name), direction: text(row.direction), status: text(row.status) }));
+    const rows = (await getData("/api/transfers")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, name: text(row.player || row.name), direction: text(row.direction), status: text(row.status) })) as Row[];
   }
   if (section === "audit") {
     const body = await getData("/api/audit", { page: 0, size: 20 });
-    return ((body.content || []) as any[]).map((row) => ({ id: row.id, actor: text(row.actor), action: text(row.action), reason: text(row.after), when: text(row.at) }));
+    return ((body.content || []) as ApiRecord[]).map((row) => ({ id: row.id, actor: text(row.actor), action: text(row.action), reason: text(row.after), when: text(row.at) })) as Row[];
   }
   if (section === "finance") {
-    const rows = (await getData("/api/finance/unpaid")) as any[];
-    return rows.map((row) => ({ id: row.id, name: text(row.name), seasonal: row.amountDue ?? 0, paid: row.amountPaid ?? 0, status: text(row.status) }));
+    const rows = (await getData("/api/finance/unpaid")) as ApiRecord[];
+    return rows.map((row) => ({ id: row.id, name: text(row.name), seasonal: row.amountDue ?? 0, paid: row.amountPaid ?? 0, status: text(row.status) })) as Row[];
   }
   return [];
 }
@@ -472,19 +509,19 @@ function Profile() {
       <motion.form className="admin-card profile-card" {...rise(1)} onSubmit={(event) => { event.preventDefault(); saveProfile(); }}>
         <p className="profile-note">{copy.emailOnly}</p>
         <Field label={copy.name}><TextInput value={user.fullName} readOnly /></Field>
-        <Field label={copy.email} required><TextInput type="email" value={email} autoComplete="email" onChange={(event: any) => setEmail(event.target.value)} /></Field>
+        <Field label={copy.email} required><TextInput type="email" value={email} autoComplete="email" onChange={(event: InputEvent) => setEmail(event.target.value)} /></Field>
         <Field label={copy.phone} error={phoneError} hint={phoneError ? undefined : "+250 7XX XXX XXX"}><PhoneInput value={phone} aria-label={copy.phone} onChange={setPhone} /></Field>
         <Field label={copy.role}><TextInput value={ROLE_LABEL[user.role] || user.role} readOnly /></Field>
         <div className="profile-pair">
           <Field label={copy.language}>
-            <SelectInput aria-label={copy.language} value={locale} onChange={(event: any) => setLocale(event.target.value as "en" | "fr" | "rw")}>
+            <SelectInput aria-label={copy.language} value={locale} onChange={(event: InputEvent) => setLocale(event.target.value as "en" | "fr" | "rw")}>
               <option value="en">EN</option>
               <option value="fr">FR</option>
               <option value="rw">RW</option>
             </SelectInput>
           </Field>
           <Field label={copy.theme}>
-            <SelectInput aria-label={copy.theme} value={theme} onChange={(event: any) => setTheme(event.target.value as "light" | "dark")}>
+            <SelectInput aria-label={copy.theme} value={theme} onChange={(event: InputEvent) => setTheme(event.target.value as "light" | "dark")}>
               <option value="light">{copy.light}</option>
               <option value="dark">{copy.dark}</option>
             </SelectInput>
@@ -517,7 +554,7 @@ function Profile() {
         {fileUrl ? (
           <motion.div className="photo-preview" initial={stillMotion() ? false : { opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}>
             <img src={fileUrl} alt="" style={{ transform: `scale(${zoom})` }} />
-            <Field label={copy.zoom}><TextInput type="range" min={1} max={2.4} step={0.05} value={zoom} onChange={(event: any) => setZoom(Number(event.target.value))} /></Field>
+            <Field label={copy.zoom}><TextInput type="range" min={1} max={2.4} step={0.05} value={zoom} onChange={(event: InputEvent) => setZoom(Number(event.target.value))} /></Field>
             <Button variant="primary" loading={busy} onClick={saveCrop}>{copy.save}</Button>
           </motion.div>
         ) : null}
@@ -525,8 +562,8 @@ function Profile() {
 
       <motion.form id="password" className="admin-card profile-card" {...rise(3)} onSubmit={(event) => { event.preventDefault(); savePassword(); }}>
         <h2>{copy.changePassword}</h2>
-        <Field label={copy.currentPassword} required><TextInput type="password" value={currentPassword} autoComplete="current-password" onChange={(event: any) => setCurrentPassword(event.target.value)} /></Field>
-        <Field label={copy.newPassword} required><TextInput type="password" minLength={8} value={newPassword} autoComplete="new-password" onChange={(event: any) => setNewPassword(event.target.value)} /></Field>
+        <Field label={copy.currentPassword} required><TextInput type="password" value={currentPassword} autoComplete="current-password" onChange={(event: InputEvent) => setCurrentPassword(event.target.value)} /></Field>
+        <Field label={copy.newPassword} required><TextInput type="password" minLength={8} value={newPassword} autoComplete="new-password" onChange={(event: InputEvent) => setNewPassword(event.target.value)} /></Field>
         <Button variant="primary" type="submit" loading={busy} {...(!currentPassword || newPassword.length < 8 ? { disabled: true } : {})}>{copy.save}</Button>
       </motion.form>
     </section>
