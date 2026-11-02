@@ -5,7 +5,7 @@ ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS match_id BIGINT;
 ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS closed_by VARCHAR(160);
 ALTER TABLE training_sessions ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP;
 
-ALTER TABLE training_sessions ADD CONSTRAINT IF NOT EXISTS fk_session_match FOREIGN KEY (match_id) REFERENCES matches (id);
+ALTER TABLE training_sessions ADD CONSTRAINT fk_session_match FOREIGN KEY (match_id) REFERENCES matches (id);
 
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS staff_id BIGINT;
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS person_type VARCHAR(20) DEFAULT 'PLAYER' NOT NULL;
@@ -14,8 +14,8 @@ ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS recorded_at TIMESTAMP;
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS modified_by VARCHAR(160);
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS modified_at TIMESTAMP;
 ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS edit_reason VARCHAR(400);
-ALTER TABLE attendance_records ALTER COLUMN player_id SET NULL;
-ALTER TABLE attendance_records ADD CONSTRAINT IF NOT EXISTS fk_att_staff FOREIGN KEY (staff_id) REFERENCES staff_members (id);
+ALTER TABLE attendance_records ALTER COLUMN player_id DROP NOT NULL;
+ALTER TABLE attendance_records ADD CONSTRAINT fk_att_staff FOREIGN KEY (staff_id) REFERENCES staff_members (id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_attendance_staff ON attendance_records (session_id, staff_id);
 

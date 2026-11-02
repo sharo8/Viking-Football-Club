@@ -50,7 +50,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                         auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
                         if (environment.matchesProfiles("dev")) {
-                            auth.requestMatchers("/api/dev/**").permitAll();
+                            auth.requestMatchers("/api/dev/**", "/h2-console/**").permitAll();
                         }
                         auth.requestMatchers(
                                 "/api/auth/login",
@@ -71,7 +71,6 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.GET, "/files/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
