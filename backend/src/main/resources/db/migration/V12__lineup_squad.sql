@@ -1,9 +1,9 @@
-ALTER TABLE club_settings ADD COLUMN IF NOT EXISTS lineup_default_squad INT NOT NULL DEFAULT 18;
-ALTER TABLE club_settings ADD COLUMN IF NOT EXISTS squad_size_by_competition VARCHAR(2000);
+ALTER TABLE club_settings ADD COLUMN lineup_default_squad INT NOT NULL DEFAULT 18;
+ALTER TABLE club_settings ADD COLUMN squad_size_by_competition VARCHAR(2000);
 UPDATE club_settings SET lineup_min_squad = 12 WHERE lineup_min_squad = 16;
 
-ALTER TABLE lineup_versions ADD COLUMN IF NOT EXISTS squad_size INT;
-ALTER TABLE lineup_versions ADD COLUMN IF NOT EXISTS squad_plan_json VARCHAR(800);
+ALTER TABLE lineup_versions ADD COLUMN squad_size INT;
+ALTER TABLE lineup_versions ADD COLUMN squad_plan_json VARCHAR(800);
 
 CREATE TABLE IF NOT EXISTS lineup_squad_members (
     id ${identity} PRIMARY KEY,

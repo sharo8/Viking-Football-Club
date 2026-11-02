@@ -6,7 +6,7 @@ CREATE TABLE app_users (
     email VARCHAR(180) NOT NULL,
     password_hash VARCHAR(100) NOT NULL,
     full_name VARCHAR(160) NOT NULL,
-    role VARCHAR(40) NOT NULL,
+    `role` VARCHAR(40) NOT NULL,
     phone VARCHAR(40),
     active BOOLEAN NOT NULL DEFAULT TRUE,
     must_change_password BOOLEAN NOT NULL DEFAULT TRUE,
@@ -852,8 +852,8 @@ CREATE TABLE announcements (
 
 CREATE TABLE announcement_audiences (
     announcement_id BIGINT NOT NULL,
-    role VARCHAR(40) NOT NULL,
-    CONSTRAINT pk_announcement_audience PRIMARY KEY (announcement_id, role),
+    `role` VARCHAR(40) NOT NULL,
+    CONSTRAINT pk_announcement_audience PRIMARY KEY (announcement_id, `role`),
     CONSTRAINT fk_aud_announcement FOREIGN KEY (announcement_id) REFERENCES announcements (id)
 );
 

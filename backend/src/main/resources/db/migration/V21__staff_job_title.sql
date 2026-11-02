@@ -1,1 +1,1 @@
-ALTER TABLE staff_members ADD COLUMN IF NOT EXISTS job_title VARCHAR(80);
+ALTER TABLE staff_members ADD COLUMN job_title VARCHAR(80);

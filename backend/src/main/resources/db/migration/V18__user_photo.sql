@@ -1,1 +1,1 @@
-ALTER TABLE app_users ADD COLUMN IF NOT EXISTS photo_url VARCHAR(400);
+ALTER TABLE app_users ADD COLUMN photo_url VARCHAR(400);

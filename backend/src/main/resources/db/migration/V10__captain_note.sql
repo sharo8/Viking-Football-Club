@@ -1,2 +1,2 @@
-ALTER TABLE team_captains ADD COLUMN IF NOT EXISTS note VARCHAR(240);
-ALTER TABLE team_captains ADD COLUMN IF NOT EXISTS assigned_by VARCHAR(160);
+ALTER TABLE team_captains ADD COLUMN note VARCHAR(240);
+ALTER TABLE team_captains ADD COLUMN assigned_by VARCHAR(160);

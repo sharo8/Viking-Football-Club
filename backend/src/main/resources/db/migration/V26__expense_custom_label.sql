@@ -1,1 +1,1 @@
-ALTER TABLE finance_expenses ADD COLUMN IF NOT EXISTS custom_label VARCHAR(80);
+ALTER TABLE finance_expenses ADD COLUMN custom_label VARCHAR(80);
